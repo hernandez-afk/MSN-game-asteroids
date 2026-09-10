@@ -1049,7 +1049,7 @@
     const SLOT_COUNT = 24, SLOT_DEG = 360 / SLOT_COUNT; // 15°
     const dashHalfDeg = 4.5; // each dash spans 9° (of the 15° slot)
     const r = 46;
-    const flareBaseHalfDeg = 3, flareLen = 6;
+    const flareBaseHalf = 3.5, flareLen = 6;
     // Each group: the slots left empty, and the fixed cardinal angle its
     // bordering flares should point along.
     const gapGroups = [
@@ -1075,19 +1075,28 @@
       const [x2, y2] = toXY(aEnd, r);
       markup += `<path d="M${fmt(x1)} ${fmt(y1)} A${r} ${r} 0 0 1 ${fmt(x2)} ${fmt(y2)}" fill="none" stroke="var(--accent)" stroke-width="3" stroke-linecap="round"/>`;
 
+      // No flare at all next to the TOP gap (cardinal 0) — just the plain
+      // dash end. Elsewhere the flare's base is a straight horizontal line
+      // (90°/270°, left/right) or vertical line (180°, bottom); the apex
+      // points along the ring's tangent, away from the gap — perpendicular
+      // to that base by construction, so it's never degenerate.
       const prevCardinal = slotGapCardinal.get((i - 1 + SLOT_COUNT) % SLOT_COUNT);
       const nextCardinal = slotGapCardinal.get((i + 1) % SLOT_COUNT);
-      const flareAt = (edgeAngle, cardinal) => {
-        const [bx1, by1] = toXY(edgeAngle - flareBaseHalfDeg, r);
-        const [bx2, by2] = toXY(edgeAngle + flareBaseHalfDeg, r);
+      const flareAt = (edgeAngle, cardinal, awayDir) => {
+        if (cardinal === 0) return;
         const [px, py] = toXY(edgeAngle, r);
-        const cardRad = cardinal * Math.PI / 180;
-        const tipX = px + Math.sin(cardRad) * flareLen;
-        const tipY = py - Math.cos(cardRad) * flareLen;
+        const horizontal = cardinal === 90 || cardinal === 270;
+        const [bx1, by1] = horizontal ? [px - flareBaseHalf, py] : [px, py - flareBaseHalf];
+        const [bx2, by2] = horizontal ? [px + flareBaseHalf, py] : [px, py + flareBaseHalf];
+        const edgeRad = edgeAngle * Math.PI / 180;
+        const tipX = px + Math.cos(edgeRad) * flareLen * awayDir;
+        const tipY = py + Math.sin(edgeRad) * flareLen * awayDir;
         markup += `<polygon points="${fmt(bx1)},${fmt(by1)} ${fmt(tipX)},${fmt(tipY)} ${fmt(bx2)},${fmt(by2)}" fill="var(--accent)"/>`;
       };
-      if (prevCardinal !== undefined) flareAt(aStart, prevCardinal);
-      if (nextCardinal !== undefined) flareAt(aEnd, nextCardinal);
+      // aStart borders a gap on the lower-angle side, so "away" is +angle;
+      // aEnd borders a gap on the higher-angle side, so "away" is -angle.
+      if (prevCardinal !== undefined) flareAt(aStart, prevCardinal, 1);
+      if (nextCardinal !== undefined) flareAt(aEnd, nextCardinal, -1);
     }
     svg.innerHTML = markup;
   })();
