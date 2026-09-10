@@ -1036,13 +1036,13 @@
   });
 
   // Dashed ring around the stick, inspired by a classic joystick's dial
-  // housing. Dashes are short ARCS (curved with the circle, not radial
-  // spokes) laid out on a 24-slot grid every 15°. The TOP gap is 3 slots
-  // wide (more room for the label); the 90°/180°/270° gaps are 1 slot
-  // each. The dash bordering any gap gets a small triangle flared outward
-  // at its end nearest the gap — straight (axis-aligned with that gap's
-  // cardinal direction), not tilted to each dash's own slightly-off angle.
-  // Built once from plain trig; colors stay live via var(--accent).
+  // housing. Dashes are short straight chords (not radial spokes, not
+  // curved arcs) laid out on a 24-slot grid every 15°. The TOP gap is 3
+  // slots wide (more room for the label); the 90°/180°/270° gaps are 1
+  // slot each. The dash bordering any gap gets a small flare where it
+  // meets the gap, oriented to that dash's own line and the ring's
+  // radial direction. Built once from plain trig; colors stay live via
+  // var(--accent).
   (function buildJoystickRing() {
     const svg = document.getElementById('joyRing');
     const cx = 50, cy = 50;
@@ -1084,21 +1084,23 @@
       const aStart = center - dashHalfDeg, aEnd = center + dashHalfDeg;
       const [x1, y1] = toXY(aStart, r);
       const [x2, y2] = toXY(aEnd, r);
-      markup += `<path d="M${fmt(x1)} ${fmt(y1)} A${r} ${r} 0 0 1 ${fmt(x2)} ${fmt(y2)}" fill="none" stroke="var(--accent)" stroke-width="3" stroke-linecap="round"/>`;
+      // Straight chord instead of a curved arc — every dash is a flat
+      // line segment (still angled to follow the ring overall).
+      markup += `<path d="M${fmt(x1)} ${fmt(y1)} L${fmt(x2)} ${fmt(y2)}" fill="none" stroke="var(--accent)" stroke-width="3" stroke-linecap="round"/>`;
 
       // No flare at all next to the TOP gap (cardinal 0) — just the plain
       // dash end. Elsewhere: the traced reference-icon silhouette, placed
-      // at the gap's edge (on the ring) and oriented along that spot's
-      // local tangent/radial axes — so it mirrors correctly on its own
-      // for every side of every gap.
+      // at the gap's edge (on the ring) and oriented along that dash's
+      // own straight-line direction and the ring's radial direction — so
+      // it mirrors correctly on its own for every side of every gap.
       const prevCardinal = slotGapCardinal.get((i - 1 + SLOT_COUNT) % SLOT_COUNT);
       const nextCardinal = slotGapCardinal.get((i + 1) % SLOT_COUNT);
-      const flareAt = (edgeAngle, cardinal, awayDir) => {
+      const flareAt = (px, py, otherX, otherY, cardinal) => {
         if (cardinal === 0) return;
-        const [px, py] = toXY(edgeAngle, r); // ring-attachment point, at the gap's edge
-        const edgeRad = edgeAngle * Math.PI / 180;
-        const tanX = Math.cos(edgeRad) * awayDir, tanY = Math.sin(edgeRad) * awayDir;
-        const radX = Math.sin(edgeRad), radY = -Math.cos(edgeRad);
+        let tanX = otherX - px, tanY = otherY - py; // away from the gap: toward the rest of this dash
+        const tlen = Math.hypot(tanX, tanY) || 1;
+        tanX /= tlen; tanY /= tlen;
+        const radX = (px - cx) / r, radY = (py - cy) / r; // straight outward from the ring center
         const pts = flareLocalPts
           .map(([t, rr]) => `${fmt(px + tanX * t + radX * rr)},${fmt(py + tanY * t + radY * rr)}`)
           .join(' ');
@@ -1109,10 +1111,8 @@
         markup += `<circle cx="${fmt(px)}" cy="${fmt(py)}" r="1.8" fill="var(--accent)"/>`;
         markup += `<polygon points="${pts}" fill="var(--accent)"/>`;
       };
-      // aStart borders a gap on the lower-angle side, so "away" is +angle;
-      // aEnd borders a gap on the higher-angle side, so "away" is -angle.
-      if (prevCardinal !== undefined) flareAt(aStart, prevCardinal, 1);
-      if (nextCardinal !== undefined) flareAt(aEnd, nextCardinal, -1);
+      if (prevCardinal !== undefined) flareAt(x1, y1, x2, y2, prevCardinal);
+      if (nextCardinal !== undefined) flareAt(x2, y2, x1, y1, nextCardinal);
     }
     svg.innerHTML = markup;
   })();
