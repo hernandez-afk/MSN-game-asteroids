@@ -1076,21 +1076,21 @@
       markup += `<path d="M${fmt(x1)} ${fmt(y1)} A${r} ${r} 0 0 1 ${fmt(x2)} ${fmt(y2)}" fill="none" stroke="var(--accent)" stroke-width="3" stroke-linecap="round"/>`;
 
       // No flare at all next to the TOP gap (cardinal 0) — just the plain
-      // dash end. Elsewhere: a right triangle whose right-angle corner
-      // sits right at the gap's edge — one leg runs from there along the
-      // ring's tangent (away from the gap), the other runs radially
-      // outward from there. The hypotenuse (opposite that right angle)
-      // is the far side, away from the gap.
+      // dash end. Elsewhere: a triangle whose base sits ON the ring —
+      // both base corners at radius r, so that base edge runs exactly
+      // parallel to (flush with) the dashed border line at that point —
+      // with the apex swept outward, radially, from the base's midpoint.
       const prevCardinal = slotGapCardinal.get((i - 1 + SLOT_COUNT) % SLOT_COUNT);
       const nextCardinal = slotGapCardinal.get((i + 1) % SLOT_COUNT);
       const flareAt = (edgeAngle, cardinal, awayDir) => {
         if (cardinal === 0) return;
-        const [px, py] = toXY(edgeAngle, r); // P: the right-angle corner, right at the gap's edge
+        const [px, py] = toXY(edgeAngle, r); // B1: right at the gap's edge, on the ring
         const edgeRad = edgeAngle * Math.PI / 180;
         const tanX = Math.cos(edgeRad) * awayDir, tanY = Math.sin(edgeRad) * awayDir;
-        const qx = px + tanX * flareTangentLen, qy = py + tanY * flareTangentLen; // Q: along the ring, away from the gap
+        const qx = px + tanX * flareTangentLen, qy = py + tanY * flareTangentLen; // B2: along the ring, away from the gap — also on the ring
         const radX = Math.sin(edgeRad), radY = -Math.cos(edgeRad);
-        const rx = px + radX * flareRadialLen, ry = py + radY * flareRadialLen; // R: straight outward from P (not from Q)
+        const mx = (px + qx) / 2, my = (py + qy) / 2;
+        const rx = mx + radX * flareRadialLen, ry = my + radY * flareRadialLen; // apex: straight outward from the base's midpoint
         markup += `<polygon points="${fmt(px)},${fmt(py)} ${fmt(qx)},${fmt(qy)} ${fmt(rx)},${fmt(ry)}" fill="var(--accent)"/>`;
       };
       // aStart borders a gap on the lower-angle side, so "away" is +angle;
