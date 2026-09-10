@@ -173,17 +173,34 @@
      between the marquee and the screen, drawing both connecting seams. */
   .frame-stats {
     flex: 0 0 auto;
-    display: flex; justify-content: space-between; align-items: baseline;
-    gap: 10px;
+    display: flex; flex-direction: column; gap: 6px;
     background: linear-gradient(180deg, #0B0F24 0%, #080A18 100%);
     border: 2px solid var(--accent);
     padding: clamp(6px, 1.2vh, 10px) clamp(14px, 3vw, 26px);
     box-shadow: 0 0 4px var(--accent), 0 0 14px rgba(var(--accent-rgb),0.6), inset 0 0 16px rgba(var(--accent-rgb),0.15);
     transition: border-color .6s ease, box-shadow .6s ease;
   }
+  .frame-stats-row { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
   .stat-item { display: flex; align-items: baseline; gap: 6px; font-size: clamp(11px, 1.8vh, 15px); letter-spacing: 2px; color: var(--accent);
     text-shadow: 0 0 6px rgba(var(--accent-rgb),0.5); white-space: nowrap; transition: color .6s ease, text-shadow .6s ease; }
   .stat-label { color: rgba(var(--accent-rgb), 0.6); transition: color .6s ease; }
+
+  /* WAVE PROGRESS — fills left-to-right as the current wave's asteroids
+     (and any saucer) are cleared, so progress toward the next wave reads
+     at a glance instead of only jumping when the WAVE number changes. */
+  .wave-progress {
+    width: 100%; height: clamp(5px, 0.9vh, 7px); border-radius: 4px;
+    background: rgba(var(--accent-rgb), 0.15);
+    box-shadow: inset 0 0 4px rgba(0,0,0,0.4);
+    overflow: hidden;
+    transition: background .6s ease;
+  }
+  .wave-progress-fill {
+    height: 100%; width: 0%; border-radius: 4px;
+    background: var(--accent);
+    box-shadow: 0 0 8px var(--accent), 0 0 16px rgba(var(--accent-rgb),0.6);
+    transition: width .4s ease, background .6s ease, box-shadow .6s ease;
+  }
 
   .mid-row { flex: 1 1 auto; min-height: 0; display: flex; gap: clamp(6px, 1.4vw, 14px); }
 
@@ -408,9 +425,12 @@
 
     <!-- FRAME STATS — the cabinet's own live readout, independent of the in-canvas HUD -->
     <div class="frame-stats">
-      <div class="stat-item"><span class="stat-label">WAVE</span><span id="frameWave">01</span></div>
-      <div class="stat-item"><span class="stat-label">SCORE</span><span id="frameScore">0000</span></div>
-      <div class="stat-item"><span class="stat-label">HI-SCORE</span><span id="frameHiScore">0000</span></div>
+      <div class="frame-stats-row">
+        <div class="stat-item"><span class="stat-label">WAVE</span><span id="frameWave">01</span></div>
+        <div class="stat-item"><span class="stat-label">SCORE</span><span id="frameScore">0000</span></div>
+        <div class="stat-item"><span class="stat-label">HI-SCORE</span><span id="frameHiScore">0000</span></div>
+      </div>
+      <div class="wave-progress"><div class="wave-progress-fill" id="waveProgressFill"></div></div>
     </div>
 
     <!-- BEZEL / SCREEN — the only game-specific thing inside is the <canvas> and its two overlays.
@@ -601,7 +621,6 @@
   const ctx = canvas.getContext('2d');
   let W = 300, H = 300;
   let stars = [];
-  let vignette = null;
 
   function rebuildStars() {
     const STAR_COUNT = 220;
@@ -616,11 +635,6 @@
         twinkleSpeed: rand(0.015, 0.05)
       });
     }
-  }
-  function rebuildVignette() {
-    vignette = ctx.createRadialGradient(W/2, H/2, H * 0.35, W/2, H/2, H * 0.75);
-    vignette.addColorStop(0, 'rgba(0,0,0,0)');
-    vignette.addColorStop(1, 'rgba(0,0,0,0.55)');
   }
 
   let resizeQueued = false;
@@ -637,7 +651,6 @@
     }
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     rebuildStars();
-    rebuildVignette();
   }
   function queueResize() {
     if (resizeQueued) return;
@@ -759,6 +772,7 @@
 
   const HEARTBEAT_MAX_FRAMES = 55;
   const HEARTBEAT_MIN_FRAMES = 14;
+  const ASTEROID_UNITS = { large: 4, medium: 2, small: 1 };
   let initialAsteroidCount = 0;
   let heartbeatTimer = HEARTBEAT_MAX_FRAMES;
   let heartbeatToggle = false;
@@ -1524,9 +1538,19 @@
     }
   }
 
+  // The vignette follows the ship instead of sitting fixed at screen center,
+  // so the area around the player always stays bright and legible — only
+  // the parts of the field far from the ship darken toward the edges.
   function drawVignette() {
-    if (!vignette) return;
-    ctx.fillStyle = vignette;
+    let cx = W / 2, cy = H / 2;
+    if (ship && (state === 'playing' || state === 'levelstart')) {
+      cx = ship.x; cy = ship.y;
+    }
+    const minDim = Math.min(W, H), diag = Math.sqrt(W * W + H * H);
+    const g = ctx.createRadialGradient(cx, cy, minDim * 0.42, cx, cy, diag * 0.58);
+    g.addColorStop(0, 'rgba(0,0,0,0)');
+    g.addColorStop(1, 'rgba(0,0,0,0.55)');
+    ctx.fillStyle = g;
     ctx.fillRect(0, 0, W, H);
   }
 
@@ -1590,7 +1614,8 @@
     if (heartbeatTimer <= 0) {
       if (heartbeatToggle) sfx.heartbeat1(); else sfx.heartbeat2();
       heartbeatToggle = !heartbeatToggle;
-      const remainingRatio = initialAsteroidCount > 0 ? asteroids.length / initialAsteroidCount : 1;
+      const remainingUnits = asteroids.reduce((sum, a) => sum + (ASTEROID_UNITS[a.size] || 1), 0);
+      const remainingRatio = initialAsteroidCount > 0 ? remainingUnits / (initialAsteroidCount * ASTEROID_UNITS.large) : 1;
       let frames = HEARTBEAT_MIN_FRAMES + (HEARTBEAT_MAX_FRAMES - HEARTBEAT_MIN_FRAMES) * remainingRatio;
       if (saucer) frames *= 0.6;
       heartbeatTimer = Math.max(HEARTBEAT_MIN_FRAMES, Math.round(frames));
@@ -1686,7 +1711,9 @@
   const frameHiScoreEl = document.getElementById('frameHiScore');
   const sideWaveEl = document.getElementById('sideWave');
   const sideLivesEl = document.getElementById('sideLives');
+  const waveProgressFillEl = document.getElementById('waveProgressFill');
   const lastFrameStats = { score: null, hi: null, level: null, lives: null };
+  let lastWaveProgressPct = -1;
   function updateFrameStats() {
     if (score !== lastFrameStats.score) {
       frameScoreEl.textContent = String(score).padStart(4, '0');
@@ -1705,6 +1732,21 @@
     if (lives !== lastFrameStats.lives) {
       sideLivesEl.textContent = String(Math.max(0, lives));
       lastFrameStats.lives = lives;
+    }
+    // Wave progress: raw asteroid *count* isn't monotonic — breaking a large
+    // one briefly leaves MORE (smaller) asteroids on screen than before, so
+    // counting objects would make progress dip or sit at 0% right when the
+    // player is actually making headway. Splitting always conserves mass
+    // exactly (1 large == 2 medium == 4 small), so counting remaining mass
+    // in "small" units only ever goes down, only reaching 0 once every last
+    // fragment is destroyed.
+    const remainingUnits = (asteroids || []).reduce((sum, a) => sum + (ASTEROID_UNITS[a.size] || 1), 0);
+    const initialUnits = initialAsteroidCount * ASTEROID_UNITS.large;
+    const progress = initialUnits > 0 ? Math.max(0, Math.min(1, 1 - remainingUnits / initialUnits)) : 0;
+    const pct = Math.round(progress * 100);
+    if (pct !== lastWaveProgressPct) {
+      waveProgressFillEl.style.width = pct + '%';
+      lastWaveProgressPct = pct;
     }
   }
 
