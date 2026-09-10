@@ -20,16 +20,16 @@
     --ash: #616161;
     --stardust: #979797;
     --white: #FFFFFF;
-    --yellow: #FCCE01;
     --orange: #FF6B00;
     --red: #FF0000;
-    --pink: #FF008D;
     --purple: #A4009F;
     --blue: #0065B9;
     --phosphor: #3FE05F;
     --atari-red: #E01E2B;
-    --cyan: #3ED6FF;
-    --violet: #B44BFF;
+    /* The cabinet's single neon color. Starts white; JS grows/rotates it
+       via --accent-rgb as level and score climb (see updateAccentColor). */
+    --accent-rgb: 255, 255, 255;
+    --accent: rgb(var(--accent-rgb));
   }
 
   * { box-sizing: border-box; }
@@ -82,21 +82,23 @@
     position: relative;
     flex: 0 0 auto;
     background: linear-gradient(180deg, #0B0F24 0%, #080A18 100%);
-    border: 2px solid var(--pink);
+    border: 2px solid var(--accent);
     border-bottom: none;
     border-radius: clamp(14px, 3vw, 34px) clamp(14px, 3vw, 34px) 0 0;
-    box-shadow: 0 0 4px var(--pink), 0 0 14px #FF008DAA, 0 0 38px #FF008D44,
-      0 -18px 70px #FF008D22, inset 0 0 22px #FF008D2E;
+    box-shadow: 0 0 4px var(--accent), 0 0 14px rgba(var(--accent-rgb),0.67), 0 0 38px rgba(var(--accent-rgb),0.27),
+      0 -18px 70px rgba(var(--accent-rgb),0.13), inset 0 0 22px rgba(var(--accent-rgb),0.18);
     padding: clamp(10px, 2.2vh, 18px) clamp(14px, 3vw, 26px) clamp(8px, 1.6vh, 14px);
     display: flex; align-items: center; justify-content: space-between; gap: 14px;
+    transition: border-color .6s ease, box-shadow .6s ease;
   }
   .marquee-titles { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
-  .marquee-titles svg { max-width: 100%; overflow: visible;
-    filter: drop-shadow(0 0 3px var(--pink)) drop-shadow(0 0 10px var(--pink)) drop-shadow(0 0 26px #FF008D88); }
+  .marquee-titles svg { max-width: 100%; overflow: visible; transition: filter .6s ease;
+    filter: drop-shadow(0 0 3px var(--accent)) drop-shadow(0 0 10px var(--accent)) drop-shadow(0 0 26px rgba(var(--accent-rgb),0.53)); }
   .marquee-sub {
-    font-size: clamp(11px, 1.8vh, 15px); letter-spacing: 4px; color: var(--cyan);
-    text-shadow: 0 0 8px var(--cyan), 0 0 20px #3ED6FF66;
+    font-size: clamp(11px, 1.8vh, 15px); letter-spacing: 4px; color: var(--accent);
+    text-shadow: 0 0 8px var(--accent), 0 0 20px rgba(var(--accent-rgb),0.4);
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    transition: color .6s ease, text-shadow .6s ease;
   }
   .atari-badge { flex-shrink: 0; width: clamp(56px, 11vw, 96px); filter: drop-shadow(0 0 6px var(--atari-red)) drop-shadow(0 0 18px #E01E2B88); }
   .atari-badge svg { display: block; width: 100%; height: auto; }
@@ -105,20 +107,22 @@
   .bezel {
     flex: 1 1 auto; min-height: 0;
     background: linear-gradient(180deg, #080A18 0%, #0A0D22 100%);
-    border: 2px solid var(--cyan);
-    box-shadow: 0 0 4px var(--cyan), 0 0 14px #3ED6FFAA, 0 0 38px #3ED6FF44,
-      -28px 0 80px #3ED6FF1E, 28px 0 80px #FF008D1E, inset 0 0 26px #3ED6FF22;
+    border: 2px solid var(--accent);
+    box-shadow: 0 0 4px var(--accent), 0 0 14px rgba(var(--accent-rgb),0.67), 0 0 38px rgba(var(--accent-rgb),0.27),
+      -28px 0 80px rgba(var(--accent-rgb),0.12), 28px 0 80px rgba(var(--accent-rgb),0.12), inset 0 0 26px rgba(var(--accent-rgb),0.13);
     padding: clamp(8px, 1.8vh, 22px);
     display: flex;
+    transition: border-color .6s ease, box-shadow .6s ease;
   }
   .screen {
     position: relative; flex: 1 1 auto; min-height: 0; width: 100%;
     background: #000;
-    border: 1px solid #3ED6FF55; border-radius: 10px; overflow: hidden;
-    box-shadow: inset 0 0 90px rgba(0,0,20,0.7), 0 0 24px #3ED6FF33;
+    border: 1px solid rgba(var(--accent-rgb),0.33); border-radius: 10px; overflow: hidden;
+    box-shadow: inset 0 0 90px rgba(0,0,20,0.7), 0 0 24px rgba(var(--accent-rgb),0.2);
     cursor: pointer;
     animation: crtFlicker 7s steps(1) infinite;
     touch-action: none;
+    transition: border-color .6s ease, box-shadow .6s ease;
   }
   canvas#game { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
 
@@ -145,8 +149,9 @@
   .overlay[hidden] { display: none; }
   .overlay svg { max-width: 88%; overflow: visible; }
   .overlay .prompt {
-    font-size: clamp(13px, 2.4vh, 20px); letter-spacing: 4px; color: var(--yellow);
-    text-shadow: 0 0 10px #FCCE0188; animation: blink 1.6s steps(1) infinite;
+    font-size: clamp(13px, 2.4vh, 20px); letter-spacing: 4px; color: var(--accent);
+    text-shadow: 0 0 10px rgba(var(--accent-rgb),0.53); animation: blink 1.6s steps(1) infinite;
+    transition: color .6s ease, text-shadow .6s ease;
   }
   .overlay .hint {
     font-size: clamp(11px, 1.8vh, 16px); letter-spacing: 2px; color: var(--stardust); max-width: 90%;
@@ -160,26 +165,32 @@
     font-size: clamp(15px, 2.4vh, 20px); letter-spacing: 3px;
     -webkit-user-select: none; user-select: none;
   }
-  .pill-btn.yellow { color: var(--yellow); border: 2px solid var(--yellow); text-shadow: 0 0 8px var(--yellow);
-    box-shadow: 0 0 4px var(--yellow), 0 0 16px #FCCE0188, inset 0 0 10px #FCCE0133; }
-  .pill-btn.yellow:active { background: #FCCE0122; transform: scale(0.96); }
-  .pill-btn.red { color: #FF3D4E; border: 2px solid var(--atari-red); text-shadow: 0 0 8px var(--atari-red);
-    box-shadow: 0 0 4px var(--atari-red), 0 0 14px #E01E2B77, inset 0 0 8px #E01E2B33; }
-  .pill-btn.red:active { background: #E01E2B22; transform: scale(0.96); }
-  .pill-btn.outline { color: #B8E8FF; border: 2px solid #3ED6FF88; text-shadow: 0 0 8px #3ED6FF66;
-    box-shadow: 0 0 10px #3ED6FF44, inset 0 0 8px #3ED6FF22; }
-  .pill-btn.outline:active { background: #3ED6FF22; transform: scale(0.96); }
+  /* All pill buttons share the one cabinet accent; .outline is just a dimmer,
+     lower-emphasis variant of the same color (secondary vs. primary action). */
+  .pill-btn.yellow, .pill-btn.red {
+    color: var(--accent); border: 2px solid var(--accent); text-shadow: 0 0 8px var(--accent);
+    box-shadow: 0 0 4px var(--accent), 0 0 16px rgba(var(--accent-rgb),0.53), inset 0 0 10px rgba(var(--accent-rgb),0.2);
+    transition: color .6s ease, border-color .6s ease, text-shadow .6s ease, box-shadow .6s ease;
+  }
+  .pill-btn.yellow:active, .pill-btn.red:active { background: rgba(var(--accent-rgb),0.13); transform: scale(0.96); }
+  .pill-btn.outline {
+    color: rgba(var(--accent-rgb),0.85); border: 2px solid rgba(var(--accent-rgb),0.53); text-shadow: 0 0 8px rgba(var(--accent-rgb),0.4);
+    box-shadow: 0 0 10px rgba(var(--accent-rgb),0.27), inset 0 0 8px rgba(var(--accent-rgb),0.13);
+    transition: color .6s ease, border-color .6s ease, text-shadow .6s ease, box-shadow .6s ease;
+  }
+  .pill-btn.outline:active { background: rgba(var(--accent-rgb),0.13); transform: scale(0.96); }
 
   .deck {
     flex: 0 0 auto;
     background: linear-gradient(180deg, #0A0D22 0%, #070816 100%);
-    border: 2px solid var(--violet); border-top: none;
+    border: 2px solid var(--accent); border-top: none;
     border-radius: 0 0 clamp(12px, 2.4vw, 22px) clamp(12px, 2.4vw, 22px);
-    box-shadow: 0 0 4px var(--violet), 0 0 14px #B44BFFAA, 0 0 38px #B44BFF44,
-      0 26px 90px #B44BFF26, inset 0 0 22px #B44BFF22;
+    box-shadow: 0 0 4px var(--accent), 0 0 14px rgba(var(--accent-rgb),0.67), 0 0 38px rgba(var(--accent-rgb),0.27),
+      0 26px 90px rgba(var(--accent-rgb),0.15), inset 0 0 22px rgba(var(--accent-rgb),0.13);
     padding: clamp(10px, 2vh, 20px) clamp(12px, 3vw, 22px)
              calc(clamp(10px, 2vh, 20px) + env(safe-area-inset-bottom, 0px)) clamp(12px, 3vw, 22px);
     display: flex; flex-direction: column; gap: clamp(6px, 1.4vh, 14px);
+    transition: border-color .6s ease, box-shadow .6s ease;
   }
   /* Primary row: joystick stays bottom-left, fire+hyper stays bottom-right — always, at any width. */
   .deck-row-main { display: flex; align-items: center; justify-content: space-between; gap: 14px; }
@@ -188,22 +199,28 @@
   .joystick-wrap { display: flex; flex-direction: column; align-items: center; gap: 6px; }
   .joystick-base {
     width: clamp(78px, 15vw, 108px); height: clamp(78px, 15vw, 108px); border-radius: 50%;
-    border: 2px solid var(--cyan);
-    box-shadow: 0 0 4px var(--cyan), 0 0 16px #3ED6FF88, inset 0 0 18px #3ED6FF33;
+    border: 2px solid var(--accent);
+    box-shadow: 0 0 4px var(--accent), 0 0 16px rgba(var(--accent-rgb),0.53), inset 0 0 18px rgba(var(--accent-rgb),0.2);
     background: radial-gradient(circle at 50% 42%, #0D1230 0%, #070816 70%);
     position: relative; touch-action: none; -webkit-user-select: none; user-select: none;
     display: flex; align-items: center; justify-content: center;
+    transition: border-color .6s ease, box-shadow .6s ease;
   }
   .joystick-base::before {
-    content: ''; position: absolute; inset: 24%; border-radius: 50%; border: 1px dashed #3ED6FF44; pointer-events: none;
+    content: ''; position: absolute; inset: 24%; border-radius: 50%; border: 1px dashed rgba(var(--accent-rgb),0.27); pointer-events: none;
+    transition: border-color .6s ease;
   }
   .joystick-knob {
     width: 44%; height: 44%; border-radius: 50%;
-    background: radial-gradient(circle at 38% 32%, #FF7BC0 0%, #FF008D 55%, #8A004C 100%);
-    box-shadow: 0 0 6px var(--pink), 0 0 20px #FF008DAA, 0 4px 10px rgba(0,0,0,0.6);
+    background: radial-gradient(circle at 38% 32%,
+      color-mix(in srgb, var(--accent) 55%, white) 0%,
+      var(--accent) 55%,
+      color-mix(in srgb, var(--accent) 45%, black) 100%);
+    box-shadow: 0 0 6px var(--accent), 0 0 20px rgba(var(--accent-rgb),0.67), 0 4px 10px rgba(0,0,0,0.6);
     pointer-events: none; will-change: transform;
+    transition: background .6s ease, box-shadow .6s ease;
   }
-  .deck-label { font-size: clamp(10px, 1.6vh, 14px); letter-spacing: 3px; color: var(--cyan); text-shadow: 0 0 8px #3ED6FF88; white-space: nowrap; }
+  .deck-label { font-size: clamp(10px, 1.6vh, 14px); letter-spacing: 3px; color: var(--accent); text-shadow: 0 0 8px rgba(var(--accent-rgb),0.53); white-space: nowrap; transition: color .6s ease, text-shadow .6s ease; }
 
   .deck-center { display: flex; flex-direction: column; align-items: center; gap: 10px; max-width: 100%; }
   .deck-buttons { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; }
@@ -218,25 +235,24 @@
     display: flex; align-items: center; justify-content: center;
     letter-spacing: 2px;
   }
+  .round-btn.fire, .round-btn.hyper {
+    color: var(--accent);
+    background: radial-gradient(circle at 50% 38%, color-mix(in srgb, var(--accent) 16%, #0A0916) 0%, #0A0916 75%);
+    border: 2px solid var(--accent); text-shadow: 0 0 10px var(--accent);
+    box-shadow: 0 0 4px var(--accent), 0 0 18px rgba(var(--accent-rgb),0.6), inset 0 0 14px rgba(var(--accent-rgb),0.2);
+    transition: color .6s ease, border-color .6s ease, text-shadow .6s ease, box-shadow .6s ease, background .6s ease;
+  }
   .round-btn.fire {
     width: clamp(58px, 14vw, 76px); height: clamp(58px, 14vw, 76px);
-    font-size: clamp(15px, 2.6vh, 19px); color: var(--yellow);
-    background: radial-gradient(circle at 50% 38%, #2A2408 0%, #0A0916 75%);
-    border: 2px solid var(--yellow); text-shadow: 0 0 10px var(--yellow);
-    box-shadow: 0 0 4px var(--yellow), 0 0 18px #FCCE0199, inset 0 0 14px #FCCE0133;
+    font-size: clamp(15px, 2.6vh, 19px);
   }
-  .round-btn.fire.pressed, .round-btn.fire:active { background: #FCCE0133; transform: scale(0.93); }
+  .round-btn.fire.pressed, .round-btn.fire:active { background: rgba(var(--accent-rgb),0.2); transform: scale(0.93); }
   .round-btn.hyper {
     width: clamp(48px, 11vw, 62px); height: clamp(48px, 11vw, 62px);
-    font-size: clamp(12px, 2vh, 15px); color: #FF7BC0;
-    background: radial-gradient(circle at 50% 38%, #2A0820 0%, #0A0916 75%);
-    border: 2px solid var(--pink); text-shadow: 0 0 10px var(--pink);
-    box-shadow: 0 0 4px var(--pink), 0 0 18px #FF008D99, inset 0 0 14px #FF008D33;
+    font-size: clamp(12px, 2vh, 15px);
   }
-  .round-btn.hyper.pressed, .round-btn.hyper:active { background: #FF008D33; transform: scale(0.93); }
-  .round-btn-label { font-size: clamp(9px, 1.4vh, 13px); letter-spacing: 3px; }
-  .round-btn-label.fire-c { color: #FCCE01AA; }
-  .round-btn-label.hyper-c { color: #FF008DAA; }
+  .round-btn.hyper.pressed, .round-btn.hyper:active { background: rgba(var(--accent-rgb),0.2); transform: scale(0.93); }
+  .round-btn-label { font-size: clamp(9px, 1.4vh, 13px); letter-spacing: 3px; color: rgba(var(--accent-rgb),0.67); transition: color .6s ease; }
 
   @media (max-height: 480px) {
     .marquee-sub { display: none; }
@@ -393,18 +409,21 @@
     }
     return { d, width: x - tracking * s };
   }
-  function setTitleSvg(svgEl, text, size, color, glowFilter) {
+  // All chrome titles are drawn as the one cabinet accent color (var(--accent)),
+  // like glowing neon-tube lettering — same color as the rest of the frame.
+  function setTitleSvg(svgEl, text, size) {
     const { d, width } = chromeTextPath(text, size);
     const pad = 5;
     svgEl.setAttribute('width', (width + pad * 2).toFixed(0));
     svgEl.setAttribute('height', (size + pad * 2).toFixed(0));
     svgEl.setAttribute('viewBox', `${-pad} ${-pad} ${(width + pad * 2).toFixed(0)} ${size + pad * 2}`);
-    svgEl.style.filter = glowFilter || `drop-shadow(0 0 8px ${color}88)`;
-    svgEl.innerHTML = `<path d="${d}" fill="none" stroke="${color}" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"></path>`;
+    svgEl.style.transition = 'filter .6s ease';
+    svgEl.style.filter = 'drop-shadow(0 0 3px var(--accent)) drop-shadow(0 0 10px var(--accent)) drop-shadow(0 0 22px rgba(var(--accent-rgb),0.53))';
+    svgEl.innerHTML = `<path d="${d}" fill="none" stroke="var(--accent)" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"></path>`;
   }
-  setTitleSvg(document.getElementById('marqueeSvg'), GAME_CONFIG.title, 32, '#FFD7EC');
-  setTitleSvg(document.getElementById('attractSvg'), GAME_CONFIG.title, 46, '#FFFFFF', 'drop-shadow(0 0 8px #FFFFFF66)');
-  setTitleSvg(document.getElementById('overSvg'), GAME_CONFIG.gameOver, 28, '#FF0000', 'drop-shadow(0 0 7px #FF0000)');
+  setTitleSvg(document.getElementById('marqueeSvg'), GAME_CONFIG.title, 32);
+  setTitleSvg(document.getElementById('attractSvg'), GAME_CONFIG.title, 46);
+  setTitleSvg(document.getElementById('overSvg'), GAME_CONFIG.gameOver, 28);
 
   // ---------- Mobile viewport ----------
   const mqCoarse = window.matchMedia('(pointer: coarse)');
@@ -1478,10 +1497,39 @@
     if (state === 'menu') document.getElementById('menuHiScore').textContent = String(hiScore).padStart(4, '0');
   }
 
+  // ---------- Cabinet accent color — the arcade's one neon color ----------
+  // Starts pure white; as score/level climb it grows in saturation (color
+  // "grows out of" white) and its hue slowly rotates (color "transitions")
+  // per level, with a slow in-level drift too so it never feels static.
+  const SAT_RAMP_SCORE = 2500;   // score to fully saturate out of white
+  const HUE_PER_LEVEL = 47;      // degrees the hue jumps each level
+  const HUE_DRIFT_SCORE = 3500;  // score span for one in-level hue drift cycle
+  const rootStyle = document.documentElement.style;
+  let lastAccentKey = '';
+  function hslToRgb(h, s, l) {
+    s /= 100; l /= 100;
+    const k = (n) => (n + h / 30) % 12;
+    const a = s * Math.min(l, 1 - l);
+    const f = (n) => l - a * Math.max(-1, Math.min(k(n) - 3, Math.min(9 - k(n), 1)));
+    return [Math.round(255 * f(0)), Math.round(255 * f(8)), Math.round(255 * f(4))];
+  }
+  function updateAccentColor() {
+    const satT = Math.max(0, Math.min(1, score / SAT_RAMP_SCORE));
+    const hue = ((level - 1) * HUE_PER_LEVEL + (score % HUE_DRIFT_SCORE) / HUE_DRIFT_SCORE * HUE_PER_LEVEL) % 360;
+    const sat = satT * 88;
+    const light = 96 - satT * 38;
+    const [r, g, b] = hslToRgb(hue, sat, light);
+    const key = r + ',' + g + ',' + b;
+    if (key === lastAccentKey) return;
+    lastAccentKey = key;
+    rootStyle.setProperty('--accent-rgb', key);
+  }
+
   function loop() {
     update();
     draw();
     syncOverlays();
+    updateAccentColor();
     requestAnimationFrame(loop);
   }
 
