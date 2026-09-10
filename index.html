@@ -366,7 +366,7 @@
      real joystick housing — same Sixtyfour Convergence treatment as the
      rest of the frame's labels. */
   .joystick-top-label {
-    position: absolute; top: -6%; left: 50%; transform: translate(-50%, -50%);
+    position: absolute; top: 4%; left: 50%; transform: translate(-50%, -50%);
     font-family: 'SixtyfourConvergence', 'VT323', monospace;
     font-variation-settings: 'SCAN' 0, 'BLED' 0, 'XELA' 0, 'YELA' 0;
     font-palette: --FrameGlitch;
@@ -1037,10 +1037,12 @@
 
   // Dashed ring around the stick, inspired by a classic joystick's dial
   // housing. Dashes are short ARCS (curved with the circle, not radial
-  // spokes) laid out on a 24-slot grid every 15°. Slots at 0°(TOP)/45°/90°/
-  // 180° are left empty as gaps, and the dash immediately on either side of
-  // each gap gets a small triangle flared outward at the end nearest the
-  // gap. Built once from plain trig; colors stay live via var(--accent).
+  // spokes) laid out on a 24-slot grid every 15°. The TOP gap is 3 slots
+  // wide (more room for the label); the 90°/180°/270° gaps are 1 slot
+  // each. The dash bordering any gap gets a small triangle flared outward
+  // at its end nearest the gap — straight (axis-aligned with that gap's
+  // cardinal direction), not tilted to each dash's own slightly-off angle.
+  // Built once from plain trig; colors stay live via var(--accent).
   (function buildJoystickRing() {
     const svg = document.getElementById('joyRing');
     const cx = 50, cy = 50;
@@ -1048,7 +1050,17 @@
     const dashHalfDeg = 4.5; // each dash spans 9° (of the 15° slot)
     const r = 46;
     const flareBaseHalfDeg = 3, flareLen = 6;
-    const gapSlots = new Set([0, 6, 12, 18]); // 0° (TOP), 90°, 180°, 270°
+    // Each group: the slots left empty, and the fixed cardinal angle its
+    // bordering flares should point along.
+    const gapGroups = [
+      { slots: [23, 0, 1], cardinal: 0 },
+      { slots: [6], cardinal: 90 },
+      { slots: [12], cardinal: 180 },
+      { slots: [18], cardinal: 270 },
+    ];
+    const gapSlots = new Set();
+    const slotGapCardinal = new Map();
+    for (const g of gapGroups) for (const s of g.slots) { gapSlots.add(s); slotGapCardinal.set(s, g.cardinal); }
     const toXY = (angleDeg, radius) => {
       const rad = angleDeg * Math.PI / 180;
       return [cx + radius * Math.sin(rad), cy - radius * Math.cos(rad)];
@@ -1063,16 +1075,19 @@
       const [x2, y2] = toXY(aEnd, r);
       markup += `<path d="M${fmt(x1)} ${fmt(y1)} A${r} ${r} 0 0 1 ${fmt(x2)} ${fmt(y2)}" fill="none" stroke="var(--accent)" stroke-width="3" stroke-linecap="round"/>`;
 
-      const prevIsGap = gapSlots.has((i - 1 + SLOT_COUNT) % SLOT_COUNT);
-      const nextIsGap = gapSlots.has((i + 1) % SLOT_COUNT);
-      const flareAt = (edgeAngle) => {
+      const prevCardinal = slotGapCardinal.get((i - 1 + SLOT_COUNT) % SLOT_COUNT);
+      const nextCardinal = slotGapCardinal.get((i + 1) % SLOT_COUNT);
+      const flareAt = (edgeAngle, cardinal) => {
         const [bx1, by1] = toXY(edgeAngle - flareBaseHalfDeg, r);
         const [bx2, by2] = toXY(edgeAngle + flareBaseHalfDeg, r);
-        const [tx, ty] = toXY(edgeAngle, r + flareLen);
-        markup += `<polygon points="${fmt(bx1)},${fmt(by1)} ${fmt(tx)},${fmt(ty)} ${fmt(bx2)},${fmt(by2)}" fill="var(--accent)"/>`;
+        const [px, py] = toXY(edgeAngle, r);
+        const cardRad = cardinal * Math.PI / 180;
+        const tipX = px + Math.sin(cardRad) * flareLen;
+        const tipY = py - Math.cos(cardRad) * flareLen;
+        markup += `<polygon points="${fmt(bx1)},${fmt(by1)} ${fmt(tipX)},${fmt(tipY)} ${fmt(bx2)},${fmt(by2)}" fill="var(--accent)"/>`;
       };
-      if (prevIsGap) flareAt(aStart);
-      if (nextIsGap) flareAt(aEnd);
+      if (prevCardinal !== undefined) flareAt(aStart, prevCardinal);
+      if (nextCardinal !== undefined) flareAt(aEnd, nextCardinal);
     }
     svg.innerHTML = markup;
   })();
