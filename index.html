@@ -1049,7 +1049,14 @@
     const SLOT_COUNT = 24, SLOT_DEG = 360 / SLOT_COUNT; // 15°
     const dashHalfDeg = 4.5; // each dash spans 9° (of the 15° slot)
     const r = 46;
-    const flareTangentLen = 9, flareRadialLen = 3;
+    // Traced directly from the reference icon's pixel silhouette (103x77),
+    // relative to its ring-attachment corner, in (tangent, radial) units:
+    // t = distance along the ring away from the gap, r = distance straight
+    // outward from the ring. Scaled down to the ring's size below.
+    const flareScale = 0.11;
+    const flareLocalPts = [
+      [0, 96], [11, 96], [37, 30], [76, 24], [70, 0], [13, 0], [0, 0],
+    ].map(([t, rr]) => [t * flareScale, rr * flareScale]);
     // Each group: the slots left empty, and the fixed cardinal angle its
     // bordering flares should point along.
     const gapGroups = [
@@ -1076,21 +1083,22 @@
       markup += `<path d="M${fmt(x1)} ${fmt(y1)} A${r} ${r} 0 0 1 ${fmt(x2)} ${fmt(y2)}" fill="none" stroke="var(--accent)" stroke-width="3" stroke-linecap="round"/>`;
 
       // No flare at all next to the TOP gap (cardinal 0) — just the plain
-      // dash end. Elsewhere: a bent-bracket triangle — from the gap's
-      // edge (on the ring), a short flat step straight outward, then a
-      // longer step along the ring's tangent (away from the gap), and
-      // the long diagonal hypotenuse closes it back to the gap's edge.
+      // dash end. Elsewhere: the traced reference-icon silhouette, placed
+      // at the gap's edge (on the ring) and oriented along that spot's
+      // local tangent/radial axes — so it mirrors correctly on its own
+      // for every side of every gap.
       const prevCardinal = slotGapCardinal.get((i - 1 + SLOT_COUNT) % SLOT_COUNT);
       const nextCardinal = slotGapCardinal.get((i + 1) % SLOT_COUNT);
       const flareAt = (edgeAngle, cardinal, awayDir) => {
         if (cardinal === 0) return;
-        const [px, py] = toXY(edgeAngle, r); // P1: right at the gap's edge, on the ring
+        const [px, py] = toXY(edgeAngle, r); // ring-attachment point, at the gap's edge
         const edgeRad = edgeAngle * Math.PI / 180;
-        const radX = Math.sin(edgeRad), radY = -Math.cos(edgeRad);
-        const p2x = px + radX * flareRadialLen, p2y = py + radY * flareRadialLen; // P2: straight outward from P1 (short flat step)
         const tanX = Math.cos(edgeRad) * awayDir, tanY = Math.sin(edgeRad) * awayDir;
-        const p3x = p2x + tanX * flareTangentLen, p3y = p2y + tanY * flareTangentLen; // P3: along the ring, away from the gap (longer step)
-        markup += `<polygon points="${fmt(px)},${fmt(py)} ${fmt(p2x)},${fmt(p2y)} ${fmt(p3x)},${fmt(p3y)}" fill="var(--accent)"/>`;
+        const radX = Math.sin(edgeRad), radY = -Math.cos(edgeRad);
+        const pts = flareLocalPts
+          .map(([t, rr]) => `${fmt(px + tanX * t + radX * rr)},${fmt(py + tanY * t + radY * rr)}`)
+          .join(' ');
+        markup += `<polygon points="${pts}" fill="var(--accent)"/>`;
       };
       // aStart borders a gap on the lower-angle side, so "away" is +angle;
       // aEnd borders a gap on the higher-angle side, so "away" is -angle.
