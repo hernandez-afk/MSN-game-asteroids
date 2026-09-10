@@ -25,11 +25,21 @@
     --purple: #A4009F;
     --blue: #0065B9;
     --phosphor: #3FE05F;
-    --atari-red: #E01E2B;
     /* The cabinet's single neon color. Starts white; JS grows/rotates it
        via --accent-rgb as level and score climb (see updateAccentColor). */
     --accent-rgb: 255, 255, 255;
     --accent: rgb(var(--accent-rgb));
+  }
+
+  @font-face {
+    font-family: 'Atari1972';
+    src: url('fonts/Atari1972-Bold.otf') format('opentype');
+    font-weight: 700; font-style: normal; font-display: swap;
+  }
+  @font-face {
+    font-family: 'Atari1972';
+    src: url('fonts/Atari1972-Regular.otf') format('opentype');
+    font-weight: 400; font-style: normal; font-display: swap;
   }
 
   * { box-sizing: border-box; }
@@ -137,22 +147,66 @@
     transition: border-color .6s ease, box-shadow .6s ease;
   }
   .marquee-titles { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
-  .marquee-titles svg { max-width: 100%; overflow: visible; transition: filter .6s ease;
-    filter: drop-shadow(0 0 4px var(--accent)) drop-shadow(0 0 12px var(--accent)) drop-shadow(0 0 32px rgba(var(--accent-rgb),0.6)) drop-shadow(0 0 60px rgba(var(--accent-rgb),0.35)); }
-  .marquee-sub {
-    font-size: clamp(11px, 1.8vh, 15px); letter-spacing: 4px; color: var(--accent);
-    text-shadow: 0 0 8px var(--accent), 0 0 20px rgba(var(--accent-rgb),0.4);
-    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  /* Every title in the cabinet — marquee, attract screen, game over — is
+     always set in Atari 1972, glowing in the one cabinet accent color. */
+  .chrome-title {
+    font-family: 'Atari1972', 'VT323', sans-serif;
+    font-weight: 700;
+    color: var(--accent);
+    text-shadow: 0 0 4px var(--accent), 0 0 14px rgba(var(--accent-rgb),0.75),
+      0 0 34px rgba(var(--accent-rgb),0.45), 0 0 64px rgba(var(--accent-rgb),0.28);
+    line-height: 1; letter-spacing: 1px; white-space: nowrap;
     transition: color .6s ease, text-shadow .6s ease;
   }
-  .atari-badge { flex-shrink: 0; width: clamp(56px, 11vw, 96px); filter: drop-shadow(0 0 6px var(--atari-red)) drop-shadow(0 0 18px #E01E2B88); }
+  .marquee-titles .chrome-title { font-size: clamp(20px, 4.2vw, 34px); overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+  .overlay .chrome-title.attract { font-size: clamp(32px, 8vw, 58px); white-space: normal; text-align: center; }
+  .overlay .chrome-title.gameover { font-size: clamp(26px, 6vw, 42px); white-space: normal; text-align: center; }
+  .atari-badge { flex-shrink: 0; width: clamp(56px, 11vw, 96px); filter: drop-shadow(0 0 4px rgba(255,255,255,0.6)) drop-shadow(0 0 12px rgba(255,255,255,0.3)); }
   .atari-badge svg { display: block; width: 100%; height: auto; }
-  .atari-badge .cls-1 { fill: #FF3D4E; }
+  .atari-badge .cls-1 { fill: #FFFFFF; }
+
+  /* FRAME STATS — a live readout on the cabinet itself (not just the canvas
+     HUD): wave/score/hi-score, updated every frame from game state. Sits
+     between the marquee and the screen, drawing both connecting seams. */
+  .frame-stats {
+    flex: 0 0 auto;
+    display: flex; justify-content: space-between; align-items: baseline;
+    gap: 10px;
+    background: linear-gradient(180deg, #0B0F24 0%, #080A18 100%);
+    border: 2px solid var(--accent);
+    padding: clamp(6px, 1.2vh, 10px) clamp(14px, 3vw, 26px);
+    box-shadow: 0 0 4px var(--accent), 0 0 14px rgba(var(--accent-rgb),0.6), inset 0 0 16px rgba(var(--accent-rgb),0.15);
+    transition: border-color .6s ease, box-shadow .6s ease;
+  }
+  .stat-item { display: flex; align-items: baseline; gap: 6px; font-size: clamp(11px, 1.8vh, 15px); letter-spacing: 2px; color: var(--accent);
+    text-shadow: 0 0 6px rgba(var(--accent-rgb),0.5); white-space: nowrap; transition: color .6s ease, text-shadow .6s ease; }
+  .stat-label { color: rgba(var(--accent-rgb), 0.6); transition: color .6s ease; }
+
+  .mid-row { flex: 1 1 auto; min-height: 0; display: flex; gap: clamp(6px, 1.4vw, 14px); }
+
+  /* Side readout panels — a progressive enhancement shown only where there's
+     width to spare (see the min-width media query below), so the screen
+     itself never has to shrink to make room for them on small devices. */
+  .side-panel {
+    display: none; flex: 0 0 auto; width: clamp(58px, 8vw, 92px);
+    flex-direction: column; align-items: center; justify-content: center; gap: 8px;
+    background: linear-gradient(180deg, #080A18 0%, #0A0D22 100%);
+    border: 2px solid var(--accent); border-radius: 10px;
+    box-shadow: 0 0 4px var(--accent), 0 0 14px rgba(var(--accent-rgb),0.5), inset 0 0 14px rgba(var(--accent-rgb),0.15);
+    color: var(--accent); text-shadow: 0 0 6px rgba(var(--accent-rgb),0.5);
+    transition: border-color .6s ease, box-shadow .6s ease, color .6s ease;
+  }
+  .side-panel .stat-label { font-size: clamp(10px, 1.5vh, 13px); letter-spacing: 2px; }
+  .side-panel .stat-value { font-size: clamp(18px, 2.6vh, 26px); font-family: 'Atari1972', 'VT323', sans-serif; font-weight: 700; }
+  @media (min-width: 720px) {
+    .side-panel { display: flex; }
+    .cabinet { width: min(100%, 1100px); }
+  }
 
   .bezel {
     flex: 1 1 auto; min-height: 0;
     background: linear-gradient(180deg, #080A18 0%, #0A0D22 100%);
-    border: 2px solid var(--accent);
+    border: 2px solid var(--accent); border-top: none;
     box-shadow: 0 0 5px var(--accent), 0 0 18px rgba(var(--accent-rgb),0.75), 0 0 48px rgba(var(--accent-rgb),0.4),
       0 0 130px rgba(var(--accent-rgb),0.2), -34px 0 110px rgba(var(--accent-rgb),0.18), 34px 0 110px rgba(var(--accent-rgb),0.18),
       inset 0 0 30px rgba(var(--accent-rgb),0.18);
@@ -301,7 +355,7 @@
   .round-btn-label { font-size: clamp(9px, 1.4vh, 13px); letter-spacing: 3px; color: rgba(var(--accent-rgb),0.67); transition: color .6s ease; }
 
   @media (max-height: 480px) {
-    .marquee-sub { display: none; }
+    .marquee-titles .chrome-title { font-size: clamp(16px, 4vw, 26px); }
   }
 </style>
 </head>
@@ -319,35 +373,52 @@
     <!-- MARQUEE — title + brand badge; swap the title text for another game -->
     <div class="marquee">
       <div class="marquee-titles">
-        <svg id="marqueeSvg" height="40"></svg>
-        <div class="marquee-sub">MSN NEON ARCADE · FREE PLAY</div>
+        <div class="chrome-title" id="marqueeTitle"></div>
       </div>
       <div class="atari-badge">
         <svg viewBox="0 0 607.29 140.94" xmlns="http://www.w3.org/2000/svg"><polygon class="cls-1" points="355.24 0.23 275.78 0.23 275.78 21.53 305.01 21.53 305.01 140.94 325.89 140.94 325.89 21.53 355.24 21.53 355.24 0.23"></polygon><rect class="cls-1" x="558.74" y="0.23" width="22.11" height="140.7"></rect><path class="cls-1" d="M222.88,85.6l15.6-53.77L254.09,85.6Zm32-72.06C252.83,5.44,246.63,0,238.49,0a16.69,16.69,0,0,0-15.55,10.62h0l0,.08c-.33.88-37.81,130.24-37.81,130.24h21.7l10.32-35.46h42.75l10.25,35.41H292Z"></path><path class="cls-1" d="M378.31,85.6l15.56-53.77L409.42,85.6Zm31.91-72.06C408.16,5.44,402,0,393.87,0a16.7,16.7,0,0,0-15.51,10.62h0l0,.08c-.33.88-37.81,130.24-37.81,130.24h21.7l10.32-35.46H415.2l10.22,35.41h21.87Z"></path><path class="cls-1" d="M539.77,37.29s.59,5.1-.86,15.34C536,69,525.76,75.6,521.48,78.1s-6.68,4.23-6.68,4.23a5.31,5.31,0,0,0-2.08,4.22,8,8,0,0,0,1.31,4.5s1.49,2.1,5.77,8.67,27.6,41.22,27.6,41.22H522.7L490.83,92.7c-3.65-5.34-3.65-9.07-3.65-11.13,0-7,3.85-11.64,9.87-14.19,0,0,21.93-7.13,21.93-24.24a32.22,32.22,0,0,0-1.13-8.86A17.49,17.49,0,0,0,501.4,21.4l-16.79.05a4.8,4.8,0,0,0-4.79,4.8V140.94H458.74V18.08A17.76,17.76,0,0,1,476.39.23h24.52a38.9,38.9,0,0,1,38.9,38.9"></path><path class="cls-1" d="M597.09,132.44h1.7a2.68,2.68,0,0,0,1.66-.36,1.17,1.17,0,0,0,.45-1,1.22,1.22,0,0,0-.21-.69,1.37,1.37,0,0,0-.6-.45,4.36,4.36,0,0,0-1.4-.15h-1.6Zm-1.39,4.89v-8.68h3a7.18,7.18,0,0,1,2.21.25,2,2,0,0,1,1.1.84,2.17,2.17,0,0,1,.4,1.26,2.35,2.35,0,0,1-.67,1.66,2.69,2.69,0,0,1-1.81.79,2.4,2.4,0,0,1,.74.46,10.1,10.1,0,0,1,1.28,1.72l1.06,1.7h-1.71L600.5,136a6.79,6.79,0,0,0-1.46-2,1.89,1.89,0,0,0-1.12-.29h-.83v3.68Zm3.53-11.18a7,7,0,0,0-3.31.86,6.35,6.35,0,0,0-2.52,2.49,7,7,0,0,0-.91,3.38,6.83,6.83,0,0,0,.9,3.34,6.28,6.28,0,0,0,2.49,2.49,6.73,6.73,0,0,0,6.69,0,6.24,6.24,0,0,0,2.5-2.49,6.79,6.79,0,0,0,0-6.72,6.23,6.23,0,0,0-2.52-2.49,7,7,0,0,0-3.3-.86m0-1.34a8.36,8.36,0,0,1,4,1,7.53,7.53,0,0,1,3,3,8.36,8.36,0,0,1,1.08,4,8.2,8.2,0,0,1-1.07,4,7.56,7.56,0,0,1-3,3,8.13,8.13,0,0,1-8,0,7.56,7.56,0,0,1-3-3,8.09,8.09,0,0,1-1.07-4,8.25,8.25,0,0,1,1.08-4,7.46,7.46,0,0,1,3-3,8.3,8.3,0,0,1,4-1"></path><path class="cls-1" d="M0,140.94s23-2.59,40.89-17.38c17.06-14,23.22-26.18,27.47-39.92s4.91-46.77,4.91-56.58V.23H62.67s0,2.71,0,9.93C62.47,25,61.19,53.31,54.37,71.7,37.91,116.07,0,120,0,120Z"></path><path class="cls-1" d="M174.89,140.94s-23-2.59-40.89-17.38c-17.06-14-23.22-26.18-27.47-39.92s-4.91-46.77-4.91-56.58V.23h10.6s0,2.71,0,9.93c.19,14.88,1.47,43.15,8.29,61.54C137,116.07,174.89,120,174.89,120Z"></path><rect class="cls-1" x="77.66" y="0.23" width="19.58" height="140.7"></rect></svg>
       </div>
     </div>
 
-    <!-- BEZEL / SCREEN — the only game-specific thing inside is the <canvas> and its two overlays -->
-    <div class="bezel">
-      <div class="screen" id="screenEl">
-        <canvas id="game"></canvas>
+    <!-- FRAME STATS — the cabinet's own live readout, independent of the in-canvas HUD -->
+    <div class="frame-stats">
+      <div class="stat-item"><span class="stat-label">WAVE</span><span id="frameWave">01</span></div>
+      <div class="stat-item"><span class="stat-label">SCORE</span><span id="frameScore">0000</span></div>
+      <div class="stat-item"><span class="stat-label">HI-SCORE</span><span id="frameHiScore">0000</span></div>
+    </div>
 
-        <div class="overlay" id="menuOverlay">
-          <svg id="attractSvg" height="52"></svg>
-          <div class="hint">STICK TO FLY · FIRE + HYPER ON THE RIGHT · ARROWS / SPACE / SHIFT ON KEYBOARD</div>
-          <div class="prompt" id="startPrompt">TAP SCREEN OR PRESS ENTER TO START</div>
-          <div class="hiscore">HI-SCORE <span id="menuHiScore">0000</span></div>
+    <!-- BEZEL / SCREEN — the only game-specific thing inside is the <canvas> and its two overlays.
+         Side panels are a progressive enhancement (hidden on narrow screens, see CSS). -->
+    <div class="mid-row">
+      <div class="side-panel left">
+        <span class="stat-label">WAVE</span>
+        <span class="stat-value" id="sideWave">01</span>
+      </div>
+      <div class="bezel">
+        <div class="screen" id="screenEl">
+          <canvas id="game"></canvas>
+
+          <div class="overlay" id="menuOverlay">
+            <div class="chrome-title attract" id="attractTitle"></div>
+            <div class="hint">STICK TO FLY · FIRE + HYPER ON THE RIGHT · ARROWS / SPACE / SHIFT ON KEYBOARD</div>
+            <div class="prompt" id="startPrompt">TAP SCREEN OR PRESS ENTER TO START</div>
+            <div class="hiscore">HI-SCORE <span id="menuHiScore">0000</span></div>
+          </div>
+
+          <div class="overlay" id="gameoverOverlay" hidden>
+            <div class="chrome-title gameover" id="gameoverTitle"></div>
+            <div class="scoreline">SCORE <span id="finalScore">0</span> · BEST <span id="bestScoreEl">0</span></div>
+            <button class="pill-btn yellow" id="againBtn">AGAIN</button>
+          </div>
+
+          <div class="boot-flash" id="bootFlash"></div>
+          <div class="scanlines"></div>
+          <div class="crt-vignette"></div>
         </div>
-
-        <div class="overlay" id="gameoverOverlay" hidden>
-          <svg id="overSvg" height="34"></svg>
-          <div class="scoreline">SCORE <span id="finalScore">0</span> · BEST <span id="bestScoreEl">0</span></div>
-          <button class="pill-btn yellow" id="againBtn">AGAIN</button>
-        </div>
-
-        <div class="boot-flash" id="bootFlash"></div>
-        <div class="scanlines"></div>
-        <div class="crt-vignette"></div>
+      </div>
+      <div class="side-panel right">
+        <span class="stat-label">LIVES</span>
+        <span class="stat-value" id="sideLives">3</span>
       </div>
     </div>
 
@@ -408,74 +479,11 @@
     mutedKey: 'msn-arcade-asteroids-muted',
   };
 
-  // ---------- Chrome vector font (4x6 grid) for marquee / overlay titles ----------
-  const CHROME_GLYPHS = {
-    A: [[[0,6],[0,2],[2,0],[4,2],[4,6]],[[0,4],[4,4]]],
-    B: [[[0,6],[0,0],[3,0],[4,1],[4,2],[3,3],[0,3]],[[3,3],[4,4],[4,5],[3,6],[0,6]]],
-    C: [[[4,0],[0,0],[0,6],[4,6]]],
-    D: [[[0,0],[0,6],[2,6],[4,4],[4,2],[2,0],[0,0]]],
-    E: [[[4,0],[0,0],[0,6],[4,6]],[[0,3],[3,3]]],
-    F: [[[4,0],[0,0],[0,6]],[[0,3],[3,3]]],
-    G: [[[4,1],[4,0],[0,0],[0,6],[4,6],[4,3],[2,3]]],
-    H: [[[0,0],[0,6]],[[4,0],[4,6]],[[0,3],[4,3]]],
-    I: [[[1,0],[3,0]],[[2,0],[2,6]],[[1,6],[3,6]]],
-    J: [[[4,0],[4,5],[3,6],[1,6],[0,5]]],
-    K: [[[0,0],[0,6]],[[4,0],[0,3],[4,6]]],
-    L: [[[0,0],[0,6],[4,6]]],
-    M: [[[0,6],[0,0],[2,2],[4,0],[4,6]]],
-    N: [[[0,6],[0,0],[4,6],[4,0]]],
-    O: [[[0,0],[4,0],[4,6],[0,6],[0,0]]],
-    P: [[[0,6],[0,0],[4,0],[4,3],[0,3]]],
-    Q: [[[0,0],[4,0],[4,6],[0,6],[0,0]],[[2,4],[4,6]]],
-    R: [[[0,6],[0,0],[4,0],[4,3],[0,3]],[[1,3],[4,6]]],
-    S: [[[4,0],[0,0],[0,3],[4,3],[4,6],[0,6]]],
-    T: [[[0,0],[4,0]],[[2,0],[2,6]]],
-    U: [[[0,0],[0,6],[4,6],[4,0]]],
-    V: [[[0,0],[2,6],[4,0]]],
-    W: [[[0,0],[1,6],[2,4],[3,6],[4,0]]],
-    X: [[[0,0],[4,6]],[[4,0],[0,6]]],
-    Y: [[[0,0],[2,2],[4,0]],[[2,2],[2,6]]],
-    Z: [[[0,0],[4,0],[0,6],[4,6]]],
-    '0': [[[0,0],[4,0],[4,6],[0,6],[0,0]],[[4,0],[0,6]]],
-    '1': [[[2,0],[2,6]]],
-    '2': [[[0,0],[4,0],[4,3],[0,3],[0,6],[4,6]]],
-    '3': [[[0,0],[4,0],[4,6],[0,6]],[[1,3],[4,3]]],
-    '4': [[[0,0],[0,3],[4,3]],[[4,0],[4,6]]],
-    '5': [[[4,0],[0,0],[0,3],[4,3],[4,6],[0,6]]],
-    '6': [[[0,0],[0,6],[4,6],[4,3],[0,3]]],
-    '7': [[[0,0],[4,0],[4,6]]],
-    '8': [[[0,0],[4,0],[4,6],[0,6],[0,0]],[[0,3],[4,3]]],
-    '9': [[[4,6],[4,0],[0,0],[0,3],[4,3]]],
-    ' ': [],
-  };
-  function chromeTextPath(text, size, tracking) {
-    tracking = tracking === undefined ? 1.6 : tracking;
-    const s = size / 6, adv = (4 + tracking) * s;
-    let d = '', x = 0;
-    for (const ch of String(text).toUpperCase()) {
-      const g = CHROME_GLYPHS[ch];
-      if (g) for (const poly of g) {
-        d += poly.map((p, i) => (i ? 'L' : 'M') + (x + p[0] * s).toFixed(2) + ' ' + (p[1] * s).toFixed(2)).join('');
-      }
-      x += adv;
-    }
-    return { d, width: x - tracking * s };
-  }
-  // All chrome titles are drawn as the one cabinet accent color (var(--accent)),
-  // like glowing neon-tube lettering — same color as the rest of the frame.
-  function setTitleSvg(svgEl, text, size) {
-    const { d, width } = chromeTextPath(text, size);
-    const pad = 5;
-    svgEl.setAttribute('width', (width + pad * 2).toFixed(0));
-    svgEl.setAttribute('height', (size + pad * 2).toFixed(0));
-    svgEl.setAttribute('viewBox', `${-pad} ${-pad} ${(width + pad * 2).toFixed(0)} ${size + pad * 2}`);
-    svgEl.style.transition = 'filter .6s ease';
-    svgEl.style.filter = 'drop-shadow(0 0 3px var(--accent)) drop-shadow(0 0 10px var(--accent)) drop-shadow(0 0 22px rgba(var(--accent-rgb),0.53))';
-    svgEl.innerHTML = `<path d="${d}" fill="none" stroke="var(--accent)" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"></path>`;
-  }
-  setTitleSvg(document.getElementById('marqueeSvg'), GAME_CONFIG.title, 32);
-  setTitleSvg(document.getElementById('attractSvg'), GAME_CONFIG.title, 46);
-  setTitleSvg(document.getElementById('overSvg'), GAME_CONFIG.gameOver, 28);
+  // Chrome titles are plain Atari 1972 text (see .chrome-title), not drawn —
+  // just set once from GAME_CONFIG so a different game only edits the config.
+  document.getElementById('marqueeTitle').textContent = GAME_CONFIG.title;
+  document.getElementById('attractTitle').textContent = GAME_CONFIG.title;
+  document.getElementById('gameoverTitle').textContent = GAME_CONFIG.gameOver;
 
   // ---------- Mobile viewport ----------
   const mqCoarse = window.matchMedia('(pointer: coarse)');
@@ -1577,11 +1585,40 @@
     rootStyle.setProperty('--accent-rgb', key);
   }
 
+  // ---------- Frame stats — the cabinet's own live readout ----------
+  const frameWaveEl = document.getElementById('frameWave');
+  const frameScoreEl = document.getElementById('frameScore');
+  const frameHiScoreEl = document.getElementById('frameHiScore');
+  const sideWaveEl = document.getElementById('sideWave');
+  const sideLivesEl = document.getElementById('sideLives');
+  const lastFrameStats = { score: null, hi: null, level: null, lives: null };
+  function updateFrameStats() {
+    if (score !== lastFrameStats.score) {
+      frameScoreEl.textContent = String(score).padStart(4, '0');
+      lastFrameStats.score = score;
+    }
+    if (hiScore !== lastFrameStats.hi) {
+      frameHiScoreEl.textContent = String(hiScore).padStart(4, '0');
+      lastFrameStats.hi = hiScore;
+    }
+    if (level !== lastFrameStats.level) {
+      const wave = String(level).padStart(2, '0');
+      frameWaveEl.textContent = wave;
+      sideWaveEl.textContent = wave;
+      lastFrameStats.level = level;
+    }
+    if (lives !== lastFrameStats.lives) {
+      sideLivesEl.textContent = String(Math.max(0, lives));
+      lastFrameStats.lives = lives;
+    }
+  }
+
   function loop() {
     update();
     draw();
     syncOverlays();
     updateAccentColor();
+    updateFrameStats();
     requestAnimationFrame(loop);
   }
 
