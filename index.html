@@ -1053,9 +1053,13 @@
     // relative to its ring-attachment corner, in (tangent, radial) units:
     // t = distance along the ring away from the gap, r = distance straight
     // outward from the ring. Scaled down to the ring's size below.
+    // The last two points form a small square "collar" that fully covers
+    // the dash's round stroke-cap (radius 1.5) at the join, so the flare
+    // reads as a continuation of the border's line weight instead of a
+    // separate piece pinched onto it at a point.
     const flareScale = 0.11;
     const flareLocalPts = [
-      [0, 96], [11, 96], [37, 30], [76, 24], [70, 0], [13, 0], [0, 0],
+      [0, 96], [11, 96], [37, 30], [76, 24], [70, 0], [13, 0], [-18, 16], [-18, -16],
     ].map(([t, rr]) => [t * flareScale, rr * flareScale]);
     // Each group: the slots left empty, and the fixed cardinal angle its
     // bordering flares should point along.
@@ -1098,6 +1102,11 @@
         const pts = flareLocalPts
           .map(([t, rr]) => `${fmt(px + tanX * t + radX * rr)},${fmt(py + tanY * t + radY * rr)}`)
           .join(' ');
+        // The dash's round stroke-cap sits centered on this same point; a
+        // solid disk slightly larger than that cap fuses it with the
+        // polygon's corner so the two read as one continuous shape
+        // instead of separate overlapping pieces.
+        markup += `<circle cx="${fmt(px)}" cy="${fmt(py)}" r="1.8" fill="var(--accent)"/>`;
         markup += `<polygon points="${pts}" fill="var(--accent)"/>`;
       };
       // aStart borders a gap on the lower-angle side, so "away" is +angle;
