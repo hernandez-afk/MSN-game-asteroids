@@ -1049,7 +1049,7 @@
     const SLOT_COUNT = 24, SLOT_DEG = 360 / SLOT_COUNT; // 15°
     const dashHalfDeg = 4.5; // each dash spans 9° (of the 15° slot)
     const r = 46;
-    const flareBaseHalf = 3.5, flareLen = 6;
+    const flareTangentLen = 7, flareRadialLen = 6;
     // Each group: the slots left empty, and the fixed cardinal angle its
     // bordering flares should point along.
     const gapGroups = [
@@ -1076,22 +1076,22 @@
       markup += `<path d="M${fmt(x1)} ${fmt(y1)} A${r} ${r} 0 0 1 ${fmt(x2)} ${fmt(y2)}" fill="none" stroke="var(--accent)" stroke-width="3" stroke-linecap="round"/>`;
 
       // No flare at all next to the TOP gap (cardinal 0) — just the plain
-      // dash end. Elsewhere the flare's base is a straight horizontal line
-      // (90°/270°, left/right) or vertical line (180°, bottom); the apex
-      // points along the ring's tangent, away from the gap — perpendicular
-      // to that base by construction, so it's never degenerate.
+      // dash end. Elsewhere: a right triangle — one leg runs along the
+      // ring's tangent (away from the gap), the other runs radially
+      // outward from there, meeting at a right angle. The hypotenuse (the
+      // side opposite that right angle) starts right at the gap's edge,
+      // so it's the side that borders — "plays" — the gap.
       const prevCardinal = slotGapCardinal.get((i - 1 + SLOT_COUNT) % SLOT_COUNT);
       const nextCardinal = slotGapCardinal.get((i + 1) % SLOT_COUNT);
       const flareAt = (edgeAngle, cardinal, awayDir) => {
         if (cardinal === 0) return;
-        const [px, py] = toXY(edgeAngle, r);
-        const horizontal = cardinal === 90 || cardinal === 270;
-        const [bx1, by1] = horizontal ? [px - flareBaseHalf, py] : [px, py - flareBaseHalf];
-        const [bx2, by2] = horizontal ? [px + flareBaseHalf, py] : [px, py + flareBaseHalf];
+        const [px, py] = toXY(edgeAngle, r); // P: right at the gap's edge
         const edgeRad = edgeAngle * Math.PI / 180;
-        const tipX = px + Math.cos(edgeRad) * flareLen * awayDir;
-        const tipY = py + Math.sin(edgeRad) * flareLen * awayDir;
-        markup += `<polygon points="${fmt(bx1)},${fmt(by1)} ${fmt(tipX)},${fmt(tipY)} ${fmt(bx2)},${fmt(by2)}" fill="var(--accent)"/>`;
+        const tanX = Math.cos(edgeRad) * awayDir, tanY = Math.sin(edgeRad) * awayDir;
+        const qx = px + tanX * flareTangentLen, qy = py + tanY * flareTangentLen; // Q: along the ring, away from the gap
+        const radX = Math.sin(edgeRad), radY = -Math.cos(edgeRad);
+        const rx = qx + radX * flareRadialLen, ry = qy + radY * flareRadialLen; // R: outward from Q — right angle is at Q
+        markup += `<polygon points="${fmt(px)},${fmt(py)} ${fmt(qx)},${fmt(qy)} ${fmt(rx)},${fmt(ry)}" fill="var(--accent)"/>`;
       };
       // aStart borders a gap on the lower-angle side, so "away" is +angle;
       // aEnd borders a gap on the higher-angle side, so "away" is -angle.
