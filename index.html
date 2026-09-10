@@ -147,9 +147,9 @@
     transition: border-color .6s ease, box-shadow .6s ease;
   }
   .marquee-titles { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
-  /* Cabinet chrome titles (marquee, game over) are always set in Atari 1972,
-     glowing in the one cabinet accent color. The in-screen attract title is
-     the exception — see .vector-title — it stays hand-drawn vector lines. */
+  /* Atari 1972 is used only in the frame (the marquee title) — everything
+     inside the game screen (attract title, game over) stays the hand-drawn
+     vector-line font used by the rest of the in-canvas game art. */
   .chrome-title {
     font-family: 'Atari1972', 'VT323', sans-serif;
     font-weight: 700;
@@ -159,8 +159,9 @@
     line-height: 1; letter-spacing: 1px; white-space: nowrap;
     transition: color .6s ease, text-shadow .6s ease;
   }
-  .marquee-titles .chrome-title { font-size: clamp(20px, 4.2vw, 34px); overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
-  .overlay .chrome-title.gameover { font-size: clamp(26px, 6vw, 42px); white-space: normal; text-align: center; }
+  /* overflow stays visible so the glow can fade out naturally instead of
+     being clipped into a hard rectangle at the text box's edge. */
+  .marquee-titles .chrome-title { font-size: clamp(20px, 4.2vw, 34px); max-width: 100%; }
   .vector-title { max-width: 88%; overflow: visible; transition: filter .6s ease;
     filter: drop-shadow(0 0 4px var(--accent)) drop-shadow(0 0 12px var(--accent)) drop-shadow(0 0 32px rgba(var(--accent-rgb),0.6)) drop-shadow(0 0 60px rgba(var(--accent-rgb),0.35)); }
   .atari-badge { flex-shrink: 0; width: clamp(56px, 11vw, 96px); filter: drop-shadow(0 0 4px rgba(255,255,255,0.6)) drop-shadow(0 0 12px rgba(255,255,255,0.3)); }
@@ -283,6 +284,7 @@
   .pill-btn.outline:active { background: rgba(var(--accent-rgb),0.13); transform: scale(0.96); }
 
   .deck {
+    position: relative;
     flex: 0 0 auto;
     background: linear-gradient(180deg, #0A0D22 0%, #070816 100%);
     border: 2px solid var(--accent); border-top: none;
@@ -294,9 +296,15 @@
     display: flex; flex-direction: column; gap: clamp(6px, 1.4vh, 14px);
     transition: border-color .6s ease, box-shadow .6s ease;
   }
-  /* Primary row: joystick stays bottom-left, fire+hyper stays bottom-right — always, at any width. */
-  .deck-row-main { display: flex; align-items: center; justify-content: space-between; gap: 14px; }
-  .deck-row-secondary { display: flex; justify-content: center; }
+  /* Joystick stays bottom-left, fire+hyper stays bottom-right, restart/mute/help
+     ride in the middle — one row, so the screen above gets the extra height.
+     Below 640px there isn't room for all three buttons alongside the stick
+     and fire/hyper, so the button group drops to its own full-width row
+     instead of wrapping mid-line and overlapping fire/hyper. */
+  .deck-row-main { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 14px; }
+  @media (max-width: 640px) {
+    .deck-center { order: 3; flex: 1 1 100%; }
+  }
 
   .joystick-wrap { display: flex; flex-direction: column; align-items: center; gap: 6px; }
   .joystick-base {
@@ -324,10 +332,26 @@
   }
   .deck-label { font-size: clamp(10px, 1.6vh, 14px); letter-spacing: 3px; color: var(--accent); text-shadow: 0 0 8px rgba(var(--accent-rgb),0.53); white-space: nowrap; transition: color .6s ease, text-shadow .6s ease; }
 
-  .deck-center { display: flex; flex-direction: column; align-items: center; gap: 10px; max-width: 100%; }
+  .deck-center { display: flex; flex-direction: column; align-items: center; gap: 10px; flex: 1 1 auto; min-width: 0; }
   .deck-buttons { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; }
-  .key-hints { font-size: clamp(11px, 1.7vh, 15px); letter-spacing: 1.5px; line-height: 1.55; color: #7E86B8; text-align: center; }
-  .key-hints .dim { color: #565D8A; }
+
+  /* HELP popover — replaces the old always-on hint row; toggled by #helpBtn.
+     Anchored to the whole deck (not just deck-center) so it always clears
+     the joystick/fire row above it, even when the button group has wrapped
+     to its own line on a narrow screen. */
+  .help-popover {
+    position: absolute; bottom: calc(100% + 12px); left: 50%; transform: translateX(-50%);
+    width: max-content; max-width: min(80vw, 460px);
+    background: linear-gradient(180deg, #0B0F24 0%, #080A18 100%);
+    border: 2px solid var(--accent); border-radius: 12px;
+    box-shadow: 0 0 5px var(--accent), 0 0 18px rgba(var(--accent-rgb),0.6), inset 0 0 14px rgba(var(--accent-rgb),0.15);
+    padding: 10px 16px; text-align: center;
+    font-size: clamp(11px, 1.7vh, 15px); letter-spacing: 1.5px; line-height: 1.6; color: var(--accent);
+    text-shadow: 0 0 6px rgba(var(--accent-rgb),0.4);
+    transition: border-color .6s ease, box-shadow .6s ease, color .6s ease;
+  }
+  .help-popover[hidden] { display: none; }
+  .help-popover .dim { color: rgba(var(--accent-rgb), 0.6); }
 
   .fire-hyper { display: flex; align-items: flex-end; gap: clamp(10px, 3vw, 16px); }
   .round-btn-wrap { display: flex; flex-direction: column; align-items: center; gap: 6px; }
@@ -408,7 +432,7 @@
           </div>
 
           <div class="overlay" id="gameoverOverlay" hidden>
-            <div class="chrome-title gameover" id="gameoverTitle"></div>
+            <svg id="gameoverSvg" class="vector-title" height="34"></svg>
             <div class="scoreline">SCORE <span id="finalScore">0</span> · BEST <span id="bestScoreEl">0</span></div>
             <button class="pill-btn yellow" id="againBtn">AGAIN</button>
           </div>
@@ -424,16 +448,28 @@
       </div>
     </div>
 
-    <!-- CONTROL DECK — joystick bottom-left, fire/hyper bottom-right, keyboard hints in the middle.
-         Two fixed rows: the left/right controls never wrap apart from each other;
-         only the secondary row (restart/mute/hints) reflows on narrow screens. -->
+    <!-- CONTROL DECK — one row: joystick bottom-left, fire/hyper bottom-right,
+         restart/mute/help between them. A single compact row (instead of a
+         second row of hints) leaves more height for the screen above. -->
     <div class="deck">
+      <div class="help-popover" id="helpPopover" hidden>
+        <div>ROTATE ← → · THRUST ↑ · FIRE SPACE · HYPER SHIFT</div>
+        <div class="dim">STICK TO FLY · FIRE + HYPER ON THE RIGHT · ENTER TO START · M TO MUTE</div>
+      </div>
       <div class="deck-row deck-row-main">
         <div class="joystick-wrap">
           <div class="joystick-base" id="joyBase">
             <div class="joystick-knob" id="joyKnob"></div>
           </div>
           <div class="deck-label">STICK · ↑ THRUST</div>
+        </div>
+
+        <div class="deck-center">
+          <div class="deck-buttons">
+            <button class="pill-btn red" id="restartBtn">RESTART</button>
+            <button class="pill-btn outline" id="muteBtn">MUTE</button>
+            <button class="pill-btn outline" id="helpBtn">HELP</button>
+          </div>
         </div>
 
         <div class="fire-hyper">
@@ -444,19 +480,6 @@
           <div class="round-btn-wrap">
             <div class="round-btn hyper" id="hyperBtn">HYPER</div>
             <div class="round-btn-label hyper-c">SHIFT</div>
-          </div>
-        </div>
-      </div>
-
-      <div class="deck-row deck-row-secondary">
-        <div class="deck-center">
-          <div class="deck-buttons">
-            <button class="pill-btn red" id="restartBtn">RESTART</button>
-            <button class="pill-btn outline" id="muteBtn">MUTE</button>
-          </div>
-          <div class="key-hints" id="keyHints">
-            <div>ROTATE ← → · THRUST ↑ · FIRE SPACE</div>
-            <div class="dim">HYPER SHIFT · ENTER TO START · M TO MUTE</div>
           </div>
         </div>
       </div>
@@ -481,12 +504,12 @@
     mutedKey: 'msn-arcade-asteroids-muted',
   };
 
-  // Marquee + game-over titles are plain Atari 1972 text (see .chrome-title).
+  // The marquee title is the one piece of chrome set in plain Atari 1972 text.
   document.getElementById('marqueeTitle').textContent = GAME_CONFIG.title;
-  document.getElementById('gameoverTitle').textContent = GAME_CONFIG.gameOver;
 
-  // The in-screen attract title stays hand-drawn vector lines (4x6 grid),
-  // same treatment the whole game's canvas art uses — drawn as an SVG path
+  // Everything inside the game screen — attract title, game over — stays
+  // hand-drawn vector lines (4x6 grid), same treatment the whole game's
+  // in-canvas art uses — drawn as an SVG path
   // so it can sit in the HTML overlay rather than on the canvas itself.
   const VECTOR_TITLE_GLYPHS = {
     A: [[[0,6],[0,2],[2,0],[4,2],[4,6]],[[0,4],[4,4]]],
@@ -549,12 +572,7 @@
     svgEl.innerHTML = `<path d="${d}" fill="none" stroke="var(--accent)" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"></path>`;
   }
   setVectorTitleSvg(document.getElementById('attractSvg'), GAME_CONFIG.title, 46);
-
-  // ---------- Mobile viewport ----------
-  const mqCoarse = window.matchMedia('(pointer: coarse)');
-  function syncCoarse() { document.getElementById('keyHints').style.display = mqCoarse.matches ? 'none' : ''; }
-  syncCoarse();
-  mqCoarse.addEventListener('change', syncCoarse);
+  setVectorTitleSvg(document.getElementById('gameoverSvg'), GAME_CONFIG.gameOver, 28);
 
   const TWO_PI = Math.PI * 2;
   function rand(min, max) { return Math.random() * (max - min) + min; }
@@ -1012,6 +1030,18 @@
   });
   document.getElementById('againBtn').addEventListener('click', startGameFromIdle);
   document.getElementById('muteBtn').addEventListener('click', toggleMute);
+
+  const helpBtn = document.getElementById('helpBtn');
+  const helpPopover = document.getElementById('helpPopover');
+  helpBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    helpPopover.hidden = !helpPopover.hidden;
+  });
+  document.addEventListener('click', (e) => {
+    if (!helpPopover.hidden && e.target !== helpBtn && !helpPopover.contains(e.target)) {
+      helpPopover.hidden = true;
+    }
+  });
 
   // ---------- Update ----------
   function fireBullet() {
