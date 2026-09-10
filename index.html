@@ -1035,84 +1035,46 @@
     if (state === 'menu' || state === 'gameover') { startGameFromIdle(); }
   });
 
-  // Dashed ring around the stick, inspired by a classic joystick's dial
-  // housing. Dashes are short straight chords (not radial spokes, not
-  // curved arcs) laid out on a 24-slot grid every 15°. The TOP gap is 3
-  // slots wide (more room for the label); the 90°/180°/270° gaps are 1
-  // slot each. The dash bordering any gap gets a small flare where it
-  // meets the gap, oriented to that dash's own line and the ring's
-  // radial direction. Built once from plain trig; colors stay live via
+  // Dashed ring around the stick, traced directly from a vector reference
+  // of the same dashed-circle motif (34 dashes on a 35-slot grid, one
+  // 3-slot gap at the top for the label). Plain dashes are small filled
+  // rectangles; the two dashes flanking each of the 90°/180°/270° ticks
+  // are replaced by a taller flared accent shape instead of a break in
+  // the ring. All figures are literal (tangent, radial) distances from
+  // the ring's center, carried over from the reference at the same
+  // proportions. Built once from plain trig; colors stay live via
   // var(--accent).
   (function buildJoystickRing() {
     const svg = document.getElementById('joyRing');
     const cx = 50, cy = 50;
-    const SLOT_COUNT = 24, SLOT_DEG = 360 / SLOT_COUNT; // 15°
-    const dashHalfDeg = 4.5; // each dash spans 9° (of the 15° slot)
-    const r = 46;
-    // Traced directly from the reference icon's pixel silhouette (103x77),
-    // relative to its ring-attachment corner, in (tangent, radial) units:
-    // t = distance along the ring away from the gap, r = distance straight
-    // outward from the ring. Scaled down to the ring's size below.
-    // The last two points form a small square "collar" that fully covers
-    // the dash's round stroke-cap (radius 1.5) at the join, so the flare
-    // reads as a continuation of the border's line weight instead of a
-    // separate piece pinched onto it at a point.
-    const flareScale = 0.11;
-    const flareLocalPts = [
-      [0, 96], [11, 96], [37, 30], [76, 24], [70, 0], [13, 0], [-18, 16], [-18, -16],
+    const SLOT_COUNT = 35, SLOT_DEG = 360 / SLOT_COUNT;
+    const dashHalfW = 2.27, dashRIn = 44.51, dashROut = 46.58;
+    const dashRectPts = [[-dashHalfW, dashRIn], [dashHalfW, dashRIn], [dashHalfW, dashROut], [-dashHalfW, dashROut]];
+    const flareScale = 0.1284; // reference circle radius (358.3) scaled to this ring's radius (46)
+    const flarePts = [
+      [15.13, 346.69], [-21.16, 346.24], [-22.96, 362.30], [-2.51, 363.34], [12.56, 395.01], [18.95, 394.94],
     ].map(([t, rr]) => [t * flareScale, rr * flareScale]);
-    // Each group: the slots left empty, and the fixed cardinal angle its
-    // bordering flares should point along.
-    const gapGroups = [
-      { slots: [23, 0, 1], cardinal: 0 },
-      { slots: [6], cardinal: 90 },
-      { slots: [12], cardinal: 180 },
-      { slots: [18], cardinal: 270 },
-    ];
-    const gapSlots = new Set();
-    const slotGapCardinal = new Map();
-    for (const g of gapGroups) for (const s of g.slots) { gapSlots.add(s); slotGapCardinal.set(s, g.cardinal); }
-    const toXY = (angleDeg, radius) => {
-      const rad = angleDeg * Math.PI / 180;
-      return [cx + radius * Math.sin(rad), cy - radius * Math.cos(rad)];
-    };
+    const flarePtsMirrored = flarePts.map(([t, rr]) => [-t, rr]);
+    const gapSlots = new Set([SLOT_COUNT - 1, 0, 1]);
+    // The slot immediately before each cardinal tick gets the traced
+    // shape as-is; the slot immediately after gets it mirrored.
+    const specialSlots = new Map([
+      [8, flarePts], [9, flarePtsMirrored],
+      [17, flarePts], [18, flarePtsMirrored],
+      [26, flarePts], [27, flarePtsMirrored],
+    ]);
     const fmt = (n) => n.toFixed(2);
     let markup = '';
     for (let i = 0; i < SLOT_COUNT; i++) {
       if (gapSlots.has(i)) continue;
-      const center = i * SLOT_DEG;
-      const aStart = center - dashHalfDeg, aEnd = center + dashHalfDeg;
-      const [x1, y1] = toXY(aStart, r);
-      const [x2, y2] = toXY(aEnd, r);
-      // Straight chord instead of a curved arc — every dash is a flat
-      // line segment (still angled to follow the ring overall).
-      markup += `<path d="M${fmt(x1)} ${fmt(y1)} L${fmt(x2)} ${fmt(y2)}" fill="none" stroke="var(--accent)" stroke-width="3" stroke-linecap="round"/>`;
-
-      // No flare at all next to the TOP gap (cardinal 0) — just the plain
-      // dash end. Elsewhere: the traced reference-icon silhouette, placed
-      // at the gap's edge (on the ring) and oriented along that dash's
-      // own straight-line direction and the ring's radial direction — so
-      // it mirrors correctly on its own for every side of every gap.
-      const prevCardinal = slotGapCardinal.get((i - 1 + SLOT_COUNT) % SLOT_COUNT);
-      const nextCardinal = slotGapCardinal.get((i + 1) % SLOT_COUNT);
-      const flareAt = (px, py, otherX, otherY, cardinal) => {
-        if (cardinal === 0) return;
-        let tanX = otherX - px, tanY = otherY - py; // away from the gap: toward the rest of this dash
-        const tlen = Math.hypot(tanX, tanY) || 1;
-        tanX /= tlen; tanY /= tlen;
-        const radX = (px - cx) / r, radY = (py - cy) / r; // straight outward from the ring center
-        const pts = flareLocalPts
-          .map(([t, rr]) => `${fmt(px + tanX * t + radX * rr)},${fmt(py + tanY * t + radY * rr)}`)
-          .join(' ');
-        // The dash's round stroke-cap sits centered on this same point; a
-        // solid disk slightly larger than that cap fuses it with the
-        // polygon's corner so the two read as one continuous shape
-        // instead of separate overlapping pieces.
-        markup += `<circle cx="${fmt(px)}" cy="${fmt(py)}" r="1.8" fill="var(--accent)"/>`;
-        markup += `<polygon points="${pts}" fill="var(--accent)"/>`;
-      };
-      if (prevCardinal !== undefined) flareAt(x1, y1, x2, y2, prevCardinal);
-      if (nextCardinal !== undefined) flareAt(x2, y2, x1, y1, nextCardinal);
+      const centerRad = i * SLOT_DEG * Math.PI / 180;
+      const tanX = Math.cos(centerRad), tanY = Math.sin(centerRad);
+      const radX = Math.sin(centerRad), radY = -Math.cos(centerRad);
+      const localPts = specialSlots.get(i) || dashRectPts;
+      const pts = localPts
+        .map(([t, rr]) => `${fmt(cx + tanX * t + radX * rr)},${fmt(cy + tanY * t + radY * rr)}`)
+        .join(' ');
+      markup += `<polygon points="${pts}" fill="var(--accent)"/>`;
     }
     svg.innerHTML = markup;
   })();
