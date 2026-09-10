@@ -41,6 +41,11 @@
     src: url('fonts/Atari1972-Regular.otf') format('opentype');
     font-weight: 400; font-style: normal; font-display: swap;
   }
+  @font-face {
+    font-family: 'SixtyfourConvergence';
+    src: url('fonts/SixtyfourConvergence-Variable.ttf') format('truetype-variations');
+    font-weight: 400; font-style: normal; font-display: swap;
+  }
 
   * { box-sizing: border-box; }
   html, body {
@@ -168,6 +173,15 @@
   .atari-badge svg { display: block; width: 100%; height: auto; }
   .atari-badge .cls-1 { fill: #FFFFFF; }
 
+  /* Every readout/label/button in the frame outside the marquee title (WAVE,
+     SCORE, HI-SCORE, LIVES, STICK, FIRE, HYPER, RESTART, MUTE, HELP, the help
+     popover) is set in Sixtyfour Convergence, "Close" named instance — i.e.
+     SCAN/BLED/XELA/YELA all at 0. Nothing inside the game screen uses it. */
+  .frame-stats, .side-panel, .deck-label, .deck .pill-btn, .round-btn, .round-btn-label, .help-popover {
+    font-family: 'SixtyfourConvergence', 'VT323', monospace;
+    font-variation-settings: 'SCAN' 0, 'BLED' 0, 'XELA' 0, 'YELA' 0;
+  }
+
   /* FRAME STATS — a live readout on the cabinet itself (not just the canvas
      HUD): wave/score/hi-score, updated every frame from game state. Sits
      between the marquee and the screen, drawing both connecting seams. */
@@ -180,8 +194,10 @@
     box-shadow: 0 0 4px var(--accent), 0 0 14px rgba(var(--accent-rgb),0.6), inset 0 0 16px rgba(var(--accent-rgb),0.15);
     transition: border-color .6s ease, box-shadow .6s ease;
   }
-  .frame-stats-row { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
-  .stat-item { display: flex; align-items: baseline; gap: 6px; font-size: clamp(11px, 1.8vh, 15px); letter-spacing: 2px; color: var(--accent);
+  /* wraps instead of clipping off-screen if the (wider-than-VT323)
+     Sixtyfour Convergence labels don't all fit on one line on a narrow phone */
+  .frame-stats-row { display: flex; flex-wrap: wrap; row-gap: 3px; justify-content: space-between; align-items: baseline; gap: 10px; }
+  .stat-item { display: flex; align-items: baseline; gap: 6px; font-size: clamp(10px, 1.6vh, 14px); letter-spacing: 0.5px; color: var(--accent);
     text-shadow: 0 0 6px rgba(var(--accent-rgb),0.5); white-space: nowrap; transition: color .6s ease, text-shadow .6s ease; }
   .stat-label { color: rgba(var(--accent-rgb), 0.6); transition: color .6s ease; }
 
@@ -216,8 +232,8 @@
     color: var(--accent); text-shadow: 0 0 6px rgba(var(--accent-rgb),0.5);
     transition: border-color .6s ease, box-shadow .6s ease, color .6s ease;
   }
-  .side-panel .stat-label { font-size: clamp(10px, 1.5vh, 13px); letter-spacing: 2px; }
-  .side-panel .stat-value { font-size: clamp(18px, 2.6vh, 26px); font-family: 'Atari1972', 'VT323', sans-serif; font-weight: 700; }
+  .side-panel .stat-label { font-size: clamp(10px, 1.5vh, 13px); letter-spacing: 0.5px; }
+  .side-panel .stat-value { font-size: clamp(18px, 2.6vh, 26px); font-weight: 700; }
   @media (min-width: 720px) {
     .side-panel { display: flex; }
     .cabinet { width: min(100%, 1100px); }
@@ -347,10 +363,15 @@
     pointer-events: none; will-change: transform;
     transition: background .6s ease, box-shadow .6s ease;
   }
-  .deck-label { font-size: clamp(10px, 1.6vh, 14px); letter-spacing: 3px; color: var(--accent); text-shadow: 0 0 8px rgba(var(--accent-rgb),0.53); white-space: nowrap; transition: color .6s ease, text-shadow .6s ease; }
+  .deck-label { font-size: clamp(9px, 1.4vh, 12px); letter-spacing: 1px; color: var(--accent); text-shadow: 0 0 8px rgba(var(--accent-rgb),0.53); white-space: nowrap; transition: color .6s ease, text-shadow .6s ease; }
 
   .deck-center { display: flex; flex-direction: column; align-items: center; gap: 10px; flex: 1 1 auto; min-width: 0; }
   .deck-buttons { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; }
+  /* Sixtyfour Convergence runs wider than VT323, so the deck's own pill
+     buttons (not the game-screen AGAIN button, which keeps VT323) get a
+     smaller size + tighter tracking to keep RESTART/MUTE/HELP from
+     overflowing on a phone. */
+  .deck .pill-btn { font-size: clamp(12px, 2vh, 16px); letter-spacing: 1px; }
 
   /* HELP popover — replaces the old always-on hint row; toggled by #helpBtn.
      Anchored to the whole deck (not just deck-center) so it always clears
@@ -374,9 +395,9 @@
   .round-btn-wrap { display: flex; flex-direction: column; align-items: center; gap: 6px; }
   .round-btn {
     border-radius: 50%; touch-action: none; -webkit-user-select: none; user-select: none;
-    font-family: 'VT323', monospace; cursor: pointer;
+    cursor: pointer;
     display: flex; align-items: center; justify-content: center;
-    letter-spacing: 2px;
+    letter-spacing: 0.5px;
   }
   .round-btn.fire, .round-btn.hyper {
     color: var(--accent);
@@ -387,15 +408,15 @@
   }
   .round-btn.fire {
     width: clamp(58px, 14vw, 76px); height: clamp(58px, 14vw, 76px);
-    font-size: clamp(15px, 2.6vh, 19px);
+    font-size: clamp(10px, 1.7vh, 13px);
   }
   .round-btn.fire.pressed, .round-btn.fire:active { background: rgba(var(--accent-rgb),0.2); transform: scale(0.93); }
   .round-btn.hyper {
     width: clamp(48px, 11vw, 62px); height: clamp(48px, 11vw, 62px);
-    font-size: clamp(12px, 2vh, 15px);
+    font-size: clamp(7px, 1.2vh, 10px);
   }
   .round-btn.hyper.pressed, .round-btn.hyper:active { background: rgba(var(--accent-rgb),0.2); transform: scale(0.93); }
-  .round-btn-label { font-size: clamp(9px, 1.4vh, 13px); letter-spacing: 3px; color: rgba(var(--accent-rgb),0.67); transition: color .6s ease; }
+  .round-btn-label { font-size: clamp(8px, 1.2vh, 11px); letter-spacing: 1px; color: rgba(var(--accent-rgb),0.67); transition: color .6s ease; }
 
   @media (max-height: 480px) {
     .marquee-titles .chrome-title { font-size: clamp(16px, 4vw, 26px); }
