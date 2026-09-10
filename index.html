@@ -344,19 +344,34 @@
     .deck-center { order: 3; flex: 1 1 100%; }
   }
 
-  .joystick-wrap { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+  .joystick-wrap { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+  /* "TOP" printed above the stick, like the dial markings cast on a real
+     joystick housing — same Sixtyfour Convergence treatment as the rest of
+     the frame's labels. */
+  .joystick-top-label {
+    font-family: 'SixtyfourConvergence', 'VT323', monospace;
+    font-variation-settings: 'SCAN' 0, 'BLED' 0, 'XELA' 0, 'YELA' 0;
+    font-palette: --FrameGlitch;
+    font-size: clamp(9px, 1.4vh, 12px); letter-spacing: 2px; color: var(--accent);
+    text-shadow: 0 0 6px rgba(var(--accent-rgb),0.5);
+    transition: color .6s ease, text-shadow .6s ease;
+  }
   .joystick-base {
     width: clamp(78px, 15vw, 108px); height: clamp(78px, 15vw, 108px); border-radius: 50%;
-    border: 2px solid var(--accent);
-    box-shadow: 0 0 5px var(--accent), 0 0 20px rgba(var(--accent-rgb),0.6), 0 0 42px rgba(var(--accent-rgb),0.3), inset 0 0 18px rgba(var(--accent-rgb),0.25);
+    box-shadow: 0 0 20px rgba(var(--accent-rgb),0.5), 0 0 42px rgba(var(--accent-rgb),0.28), inset 0 0 18px rgba(var(--accent-rgb),0.2);
     background: radial-gradient(circle at 50% 42%, #0D1230 0%, #070816 70%);
     position: relative; touch-action: none; -webkit-user-select: none; user-select: none;
     display: flex; align-items: center; justify-content: center;
-    transition: border-color .6s ease, box-shadow .6s ease;
+    transition: box-shadow .6s ease;
   }
-  .joystick-base::before {
-    content: ''; position: absolute; inset: 24%; border-radius: 50%; border: 1px dashed rgba(var(--accent-rgb),0.27); pointer-events: none;
-    transition: border-color .6s ease;
+  /* The dashed ring + cardinal cut-triangle notches, inspired by a classic
+     joystick's dial housing — drawn as SVG (built once in JS) rather than a
+     plain border, so the "TOP" marker and the 4 direction notches read
+     clearly instead of a uniform circle. */
+  .joystick-ring {
+    position: absolute; inset: -8%; width: 116%; height: 116%; overflow: visible; pointer-events: none;
+    filter: drop-shadow(0 0 3px var(--accent)) drop-shadow(0 0 8px rgba(var(--accent-rgb),0.6));
+    transition: filter .6s ease;
   }
   .joystick-knob {
     width: 44%; height: 44%; border-radius: 50%;
@@ -514,7 +529,9 @@
       </div>
       <div class="deck-row deck-row-main">
         <div class="joystick-wrap">
+          <div class="joystick-top-label">TOP</div>
           <div class="joystick-base" id="joyBase">
+            <svg class="joystick-ring" id="joyRing" viewBox="0 0 100 100"></svg>
             <div class="joystick-knob" id="joyKnob"></div>
           </div>
           <div class="deck-label">STICK · ↑ THRUST</div>
@@ -1016,6 +1033,38 @@
   screenEl.addEventListener('pointerdown', (e) => {
     if (state === 'menu' || state === 'gameover') { startGameFromIdle(); }
   });
+
+  // Dashed ring + cardinal cut-triangle notches around the stick, inspired
+  // by a classic joystick's dial housing. Built once from plain trig rather
+  // than hand-typed coordinates; colors stay live via var(--accent) same as
+  // any other SVG stroke in the frame.
+  (function buildJoystickRing() {
+    const svg = document.getElementById('joyRing');
+    const cx = 50, cy = 50;
+    const tickOuterR = 46, tickInnerR = 40;
+    const chevronTipR = 34, chevronBaseR = 46, chevronHalfWidthDeg = 8;
+    const cardinal = [0, 90, 180, 270];
+    const toXY = (angleDeg, r) => {
+      const rad = angleDeg * Math.PI / 180;
+      return [cx + r * Math.sin(rad), cy - r * Math.cos(rad)];
+    };
+    let markup = '';
+    const TICK_COUNT = 20;
+    for (let i = 0; i < TICK_COUNT; i++) {
+      const a = i * (360 / TICK_COUNT);
+      if (cardinal.includes(a)) continue;
+      const [x1, y1] = toXY(a, tickInnerR);
+      const [x2, y2] = toXY(a, tickOuterR);
+      markup += `<line x1="${x1.toFixed(2)}" y1="${y1.toFixed(2)}" x2="${x2.toFixed(2)}" y2="${y2.toFixed(2)}" stroke="var(--accent)" stroke-width="3" stroke-linecap="round"/>`;
+    }
+    for (const a of cardinal) {
+      const [tx, ty] = toXY(a, chevronTipR);
+      const [bx1, by1] = toXY(a - chevronHalfWidthDeg, chevronBaseR);
+      const [bx2, by2] = toXY(a + chevronHalfWidthDeg, chevronBaseR);
+      markup += `<path d="M${bx1.toFixed(2)} ${by1.toFixed(2)} L${tx.toFixed(2)} ${ty.toFixed(2)} L${bx2.toFixed(2)} ${by2.toFixed(2)}" fill="none" stroke="var(--accent)" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>`;
+    }
+    svg.innerHTML = markup;
+  })();
 
   // -- Joystick: analog turn (x) + analog thrust (up) --
   const joyBase = document.getElementById('joyBase');
