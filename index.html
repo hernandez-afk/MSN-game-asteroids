@@ -1048,7 +1048,7 @@
     const dashHalfDeg = 4.5; // each dash spans 9° (of the 15° slot)
     const r = 46;
     const flareBaseHalfDeg = 3, flareLen = 6;
-    const gapSlots = new Set([0, 3, 6, 12]); // 0°, 45°, 90°, 180°
+    const gapSlots = new Set([0, 6, 12, 18]); // 0° (TOP), 90°, 180°, 270°
     const toXY = (angleDeg, radius) => {
       const rad = angleDeg * Math.PI / 180;
       return [cx + radius * Math.sin(rad), cy - radius * Math.cos(rad)];
