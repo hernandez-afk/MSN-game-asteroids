@@ -176,10 +176,15 @@
   /* Every readout/label/button in the frame outside the marquee title (WAVE,
      SCORE, HI-SCORE, LIVES, STICK, FIRE, HYPER, RESTART, MUTE, HELP, the help
      popover) is set in Sixtyfour Convergence, "Close" named instance — i.e.
-     SCAN/BLED/XELA/YELA all at 0. Nothing inside the game screen uses it. */
+     SCAN/BLED/XELA/YELA all at 0. Nothing inside the game screen uses it.
+     It's a color (COLR/CPAL) font with its own baked-in red/cyan glitch
+     palette, so plain `color` can't touch it — #frame-palette-style below
+     overrides every layer color to solid --accent instead (JS keeps that
+     override in sync as the accent grows/shifts with score and level). */
   .frame-stats, .side-panel, .deck-label, .deck .pill-btn, .round-btn, .round-btn-label, .help-popover {
     font-family: 'SixtyfourConvergence', 'VT323', monospace;
     font-variation-settings: 'SCAN' 0, 'BLED' 0, 'XELA' 0, 'YELA' 0;
+    font-palette: --FrameGlitch;
   }
 
   /* FRAME STATS — a live readout on the cabinet itself (not just the canvas
@@ -420,6 +425,16 @@
 
   @media (max-height: 480px) {
     .marquee-titles .chrome-title { font-size: clamp(16px, 4vw, 26px); }
+  }
+</style>
+<!-- Rewritten by JS (updateAccentColor) every time --accent-rgb changes, so
+     Sixtyfour Convergence's color-font layers stay solid --accent instead
+     of its own built-in glitch palette. Starts solid white. -->
+<style id="frame-palette-style">
+  @font-palette-values --FrameGlitch {
+    font-family: 'SixtyfourConvergence';
+    base-palette: 0;
+    override-colors: 0 rgb(255,255,255), 1 rgb(255,255,255), 2 rgb(255,255,255), 3 rgb(255,255,255), 4 rgb(255,255,255), 5 rgb(255,255,255);
   }
 </style>
 </head>
@@ -1706,6 +1721,7 @@
   const HUE_PER_LEVEL = 47;      // degrees the hue jumps each level
   const HUE_DRIFT_SCORE = 3500;  // score span for one in-level hue drift cycle
   const rootStyle = document.documentElement.style;
+  const framePaletteStyleEl = document.getElementById('frame-palette-style');
   let lastAccentKey = '';
   function hslToRgb(h, s, l) {
     s /= 100; l /= 100;
@@ -1724,6 +1740,12 @@
     if (key === lastAccentKey) return;
     lastAccentKey = key;
     rootStyle.setProperty('--accent-rgb', key);
+    // Sixtyfour Convergence is a color font — its glyph layers ignore plain
+    // `color`, so keep this @font-palette-values override in lockstep too.
+    const rgb = `rgb(${r},${g},${b})`;
+    const overrides = [0, 1, 2, 3, 4, 5].map((i) => `${i} ${rgb}`).join(', ');
+    framePaletteStyleEl.textContent =
+      `@font-palette-values --FrameGlitch { font-family: 'SixtyfourConvergence'; base-palette: 0; override-colors: ${overrides}; }`;
   }
 
   // ---------- Frame stats — the cabinet's own live readout ----------
